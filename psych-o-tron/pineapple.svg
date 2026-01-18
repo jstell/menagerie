@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Pineapple crown (leaves) -->
+  <path d="M50 5 L55 20 L60 8 L58 22 L68 12 L62 25 L72 18 L65 28 L75 25 L66 32 L50 30 L34 32 L25 25 L35 28 L28 18 L38 25 L32 12 L42 22 L40 8 L45 20 Z" fill="#348c14"/>
+
+  <!-- Pineapple body -->
+  <ellipse cx="50" cy="60" rx="28" ry="35" fill="#FFD93D"/>
+
+  <!-- Pineapple pattern -->
+  <path d="M35 45 L40 55 M45 42 L50 52 M55 42 L60 52 M65 45 L70 55" stroke="#E6B800" stroke-width="2" fill="none"/>
+  <path d="M30 55 L35 65 M40 52 L45 62 M50 50 L55 60 M60 52 L65 62 M70 55 L75 65" stroke="#E6B800" stroke-width="2" fill="none"/>
+  <path d="M32 65 L37 75 M42 62 L47 72 M52 60 L57 70 M62 62 L67 72 M72 65 L77 75" stroke="#E6B800" stroke-width="2" fill="none"/>
+  <path d="M35 75 L40 85 M45 72 L50 82 M55 72 L60 82 M65 75 L70 85" stroke="#E6B800" stroke-width="2" fill="none"/>
+</svg>
