@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Aetheremin - Web Theremin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Start Screen Overlay -->
+        <div id="start-screen">
+            <div class="start-content">
+                <h1 class="start-title">Aetheremin</h1>
+                <p class="start-subtitle">A Web-Based Theremin Instrument</p>
+                <div class="start-instructions">
+                    <p><strong>X-axis</strong> controls pitch &nbsp;|&nbsp; <strong>Y-axis</strong> controls volume</p>
+                    <p>Mouse, touch, or multi-touch to play</p>
+                </div>
+                <button id="start-btn">Touch to Begin</button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header id="header">
+            <div class="logo">
+                <span class="logo-icon">&#9836;</span>
+                <span class="logo-text">Aetheremin</span>
+            </div>
+            <div class="header-controls">
+                <div class="touch-count" id="touch-count"></div>
+                <div class="note-display" id="note-display">--</div>
+                <div class="freq-display" id="freq-display">0 Hz</div>
+            </div>
+        </header>
+
+        <!-- Main Play Area -->
+        <div id="play-area">
+            <canvas id="viz-canvas"></canvas>
+            <canvas id="particle-canvas"></canvas>
+
+            <!-- Frequency guide lines -->
+            <div id="freq-guides"></div>
+
+            <!-- Multi-touch glow container (dynamic per-touch glows) -->
+            <div id="glow-container"></div>
+
+            <!-- Volume meter (left side) -->
+            <div id="volume-meter">
+                <div id="volume-fill"></div>
+                <span class="meter-label">VOL</span>
+            </div>
+
+            <!-- Pitch indicator (bottom) -->
+            <div id="pitch-bar">
+                <div id="pitch-indicator"></div>
+                <span class="bar-label-low">LOW</span>
+                <span class="bar-label-high">HIGH</span>
+            </div>
+        </div>
+
+        <!-- Controls Panel -->
+        <div id="controls-panel">
+            <button id="toggle-controls" class="toggle-btn" title="Toggle Controls">
+                <span class="arrow">&#9650;</span>
+            </button>
+
+            <div id="controls-inner">
+                <!-- Waveform Selection -->
+                <div class="control-group waveform-group">
+                    <label class="group-label">Waveform</label>
+                    <div class="waveform-buttons waveform-buttons-4col" id="waveform-buttons">
+                        <button class="wave-btn active" data-wave="sine" title="Sine">
+                            <svg viewBox="0 0 40 20"><path d="M0,10 Q10,0 20,10 Q30,20 40,10" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                            <span>Sine</span>
+                        </button>
+                        <button class="wave-btn" data-wave="triangle" title="Triangle">
+                            <svg viewBox="0 0 40 20"><path d="M0,10 L10,0 L20,10 L30,20 L40,10" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                            <span>Tri</span>
+                        </button>
+                        <button class="wave-btn" data-wave="sawtooth" title="Sawtooth">
+                            <svg viewBox="0 0 40 20"><path d="M0,20 L20,0 L20,20 L40,0" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                            <span>Saw</span>
+                        </button>
+                        <button class="wave-btn" data-wave="square" title="Square">
+                            <svg viewBox="0 0 40 20"><path d="M0,20 L0,0 L20,0 L20,20 L40,20 L40,0" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                            <span>Sqr</span>
+                        </button>
+                    </div>
+                    <label class="group-label" style="margin-top: 6px;">Animal Sounds</label>
+                    <div class="waveform-buttons waveform-buttons-4col" id="animal-buttons">
+                        <button class="wave-btn animal-btn" data-wave="cat" title="Cat Meow">
+                            <span class="animal-icon">&#128049;</span>
+                            <span>Cat</span>
+                        </button>
+                        <button class="wave-btn animal-btn" data-wave="dog" title="Dog Howl">
+                            <span class="animal-icon">&#128054;</span>
+                            <span>Dog</span>
+                        </button>
+                        <button class="wave-btn animal-btn" data-wave="bird" title="Bird Chirp">
+                            <span class="animal-icon">&#128038;</span>
+                            <span>Bird</span>
+                        </button>
+                        <button class="wave-btn animal-btn" data-wave="whale" title="Whale Song">
+                            <span class="animal-icon">&#128011;</span>
+                            <span>Whale</span>
+                        </button>
+                    </div>
+                    <div class="mic-sample-row" style="margin-top: 6px;">
+                        <button id="mic-sample-btn" class="rec-btn" title="Record a short mic sample to use as waveform">&#127908; SAMPLE MIC</button>
+                        <button id="mic-preview-btn" class="rec-btn" title="Preview recorded sample" disabled>&#9654; PREVIEW</button>
+                        <span id="mic-status" class="mic-status">Ready</span>
+                    </div>
+                </div>
+
+                <!-- Octave Range -->
+                <div class="control-group">
+                    <label class="group-label">Octave Range</label>
+                    <div class="range-control">
+                        <span class="range-label" id="octave-label">2 - 6</span>
+                        <input type="range" id="octave-low" min="1" max="5" value="2" step="1">
+                        <input type="range" id="octave-high" min="3" max="8" value="6" step="1">
+                    </div>
+                </div>
+
+                <!-- Scale Lock -->
+                <div class="control-group">
+                    <label class="group-label">Scale Lock</label>
+                    <div class="select-wrapper">
+                        <select id="scale-select">
+                            <option value="free">Free (Continuous)</option>
+                            <option value="chromatic">Chromatic</option>
+                            <option value="major">Major</option>
+                            <option value="minor">Natural Minor</option>
+                            <option value="pentatonic">Pentatonic</option>
+                            <option value="blues">Blues</option>
+                            <option value="whole-tone">Whole Tone</option>
+                            <option value="arabic">Arabic</option>
+                        </select>
+                    </div>
+                    <div class="select-wrapper" style="margin-top: 6px;">
+                        <select id="key-select">
+                            <option value="0">C</option>
+                            <option value="1">C#/Db</option>
+                            <option value="2">D</option>
+                            <option value="3">D#/Eb</option>
+                            <option value="4">E</option>
+                            <option value="5">F</option>
+                            <option value="6">F#/Gb</option>
+                            <option value="7">G</option>
+                            <option value="8">G#/Ab</option>
+                            <option value="9">A</option>
+                            <option value="10">A#/Bb</option>
+                            <option value="11">B</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Effects -->
+                <div class="control-group effects-group">
+                    <label class="group-label">Effects</label>
+
+                    <div class="effect-control">
+                        <label>Delay</label>
+                        <input type="range" id="delay-mix" min="0" max="100" value="0">
+                        <span class="val" id="delay-val">0%</span>
+                    </div>
+                    <div class="effect-control sub">
+                        <label>Time</label>
+                        <input type="range" id="delay-time" min="50" max="1000" value="300">
+                        <span class="val" id="delay-time-val">300ms</span>
+                    </div>
+                    <div class="effect-control sub">
+                        <label>Feedback</label>
+                        <input type="range" id="delay-feedback" min="0" max="90" value="40">
+                        <span class="val" id="delay-fb-val">40%</span>
+                    </div>
+
+                    <div class="effect-control">
+                        <label>Reverb</label>
+                        <input type="range" id="reverb-mix" min="0" max="100" value="20">
+                        <span class="val" id="reverb-val">20%</span>
+                    </div>
+                    <div class="effect-control sub">
+                        <label>Decay</label>
+                        <input type="range" id="reverb-decay" min="1" max="8" value="3" step="0.5">
+                        <span class="val" id="reverb-decay-val">3s</span>
+                    </div>
+
+                    <div class="effect-control">
+                        <label>Vibrato</label>
+                        <input type="range" id="vibrato-depth" min="0" max="100" value="0">
+                        <span class="val" id="vibrato-val">0%</span>
+                    </div>
+                    <div class="effect-control sub">
+                        <label>Speed</label>
+                        <input type="range" id="vibrato-rate" min="1" max="20" value="5" step="0.5">
+                        <span class="val" id="vibrato-rate-val">5 Hz</span>
+                    </div>
+
+                    <div class="effect-control">
+                        <label>Distortion</label>
+                        <input type="range" id="distortion-amount" min="0" max="100" value="0">
+                        <span class="val" id="distortion-val">0%</span>
+                    </div>
+
+                    <div class="effect-control">
+                        <label>Chorus</label>
+                        <input type="range" id="chorus-mix" min="0" max="100" value="0">
+                        <span class="val" id="chorus-val">0%</span>
+                    </div>
+                </div>
+
+                <!-- Portamento -->
+                <div class="control-group">
+                    <label class="group-label">Portamento (Glide)</label>
+                    <div class="effect-control">
+                        <label>Speed</label>
+                        <input type="range" id="portamento" min="0" max="200" value="50">
+                        <span class="val" id="portamento-val">50ms</span>
+                    </div>
+                </div>
+
+                <!-- Visual Theme -->
+                <div class="control-group">
+                    <label class="group-label">Visuals</label>
+                    <div class="select-wrapper">
+                        <select id="theme-select">
+                            <option value="cosmic">Cosmic</option>
+                            <option value="neon">Neon</option>
+                            <option value="fire">Fire</option>
+                            <option value="ocean">Ocean</option>
+                            <option value="matrix">Matrix</option>
+                        </select>
+                    </div>
+                    <div class="effect-control" style="margin-top: 6px;">
+                        <label>Particles</label>
+                        <input type="range" id="particle-amount" min="0" max="100" value="60">
+                        <span class="val" id="particle-val">60</span>
+                    </div>
+                </div>
+
+                <!-- Loop Station -->
+                <div class="control-group loop-group">
+                    <label class="group-label">Loop Station</label>
+                    <div class="loop-controls">
+                        <div class="loop-top-row">
+                            <button id="loop-rec-btn" class="rec-btn" title="Record Loop">&#9679; LOOP</button>
+                            <button id="loop-play-btn" class="rec-btn" title="Play All" disabled>&#9654; PLAY</button>
+                            <button id="loop-stop-btn" class="rec-btn" title="Stop All" disabled>&#9632; STOP</button>
+                            <button id="loop-clear-btn" class="rec-btn" title="Clear All" disabled>&#10005; CLEAR</button>
+                            <span id="loop-timer" class="rec-timer">0:00</span>
+                        </div>
+                        <div id="loop-tracks"></div>
+                    </div>
+                </div>
+
+                <!-- Record / Export -->
+                <div class="control-group">
+                    <label class="group-label">Record / Export</label>
+                    <div class="record-controls">
+                        <button id="record-btn" class="rec-btn" title="Record">&#9679; REC</button>
+                        <button id="play-btn" class="rec-btn" title="Play Recording" disabled>&#9654; PLAY</button>
+                        <button id="download-btn" class="rec-btn" title="Download" disabled>&#11015; SAVE</button>
+                        <span id="rec-timer" class="rec-timer">0:00</span>
+                    </div>
+                </div>
+
+                <!-- Presets -->
+                <div class="control-group">
+                    <label class="group-label">Presets</label>
+                    <div class="preset-buttons" id="preset-buttons">
+                        <button class="preset-btn" data-preset="classic">Classic</button>
+                        <button class="preset-btn" data-preset="spooky">Spooky</button>
+                        <button class="preset-btn" data-preset="ambient">Ambient</button>
+                        <button class="preset-btn" data-preset="synth-lead">Synth Lead</button>
+                        <button class="preset-btn" data-preset="sci-fi">Sci-Fi</button>
+                        <button class="preset-btn" data-preset="underwater">Underwater</button>
+                        <button class="preset-btn" data-preset="cat-chorus">Cat Chorus</button>
+                        <button class="preset-btn" data-preset="whale-song">Whale Song</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="aetheremin.js"></script>
+</body>
+</html>
