@@ -885,6 +885,77 @@ select option {
 }
 
 /* ============================
+   Grid Toggle & Scale Guides
+   ============================ */
+
+.grid-control {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.grid-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    min-width: 60px;
+}
+
+.toggle-pill {
+    padding: 3px 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+}
+
+.toggle-pill:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.toggle-pill.active {
+    background: rgba(123, 47, 247, 0.15);
+    border-color: var(--accent);
+    color: var(--accent-glow);
+    box-shadow: 0 0 10px rgba(123, 47, 247, 0.2);
+}
+
+.scale-guide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--theme-primary);
+    opacity: 0.2;
+    pointer-events: none;
+}
+
+.scale-guide.is-tonic {
+    opacity: 0.5;
+    background: var(--theme-secondary);
+}
+
+.scale-guide-label {
+    position: absolute;
+    top: 8px;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--text-secondary);
+    opacity: 0.65;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.scale-guide-label.is-tonic {
+    color: var(--theme-secondary);
+    opacity: 1;
+}
+
+/* ============================
    Theme Overrides
    ============================ */
 

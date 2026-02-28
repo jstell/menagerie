@@ -83,6 +83,7 @@
     let currentTheme = 'cosmic';
     let portamentoTime = 50;
     let particleAmount = 60;
+    let showGrid = false;
     let animalPeriodicWaves = {};
     let micSampleWave = null; // PeriodicWave from mic sample
     let micSampleBuffer = null; // Raw AudioBuffer for playback preview
@@ -763,6 +764,8 @@
         el.innerHTML = '';
         const lo = noteToFreq(octaveLow * 12 + 12);
         const hi = noteToFreq(octaveHigh * 12 + 12);
+
+        // Octave markers (C notes)
         for (let oct = octaveLow; oct <= octaveHigh; oct++) {
             const f = noteToFreq(oct * 12 + 12);
             const x = Math.log(f / lo) / Math.log(hi / lo);
@@ -776,6 +779,42 @@
             lbl.style.left = (x * 100) + '%';
             el.appendChild(g);
             el.appendChild(lbl);
+        }
+
+        if (!showGrid) return;
+
+        // Scale grid lines: use the active scale intervals, or all 12 chromatic for free mode
+        const intervals = (currentScale === 'free' || !SCALES[currentScale])
+            ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+            : SCALES[currentScale];
+        // Only show note labels when there are few enough notes to be readable
+        const showLabels = intervals.length < 12;
+
+        for (let oct = octaveLow; oct <= octaveHigh; oct++) {
+            for (const iv of intervals) {
+                const semitone = (iv + currentKey) % 12;
+                const midi = oct * 12 + 12 + semitone;
+                const f = noteToFreq(midi);
+                const x = Math.log(f / lo) / Math.log(hi / lo);
+                if (x < 0 || x > 1) continue;
+
+                // Tonic highlights only make sense when a scale is active
+                const isTonic = iv === 0 && currentScale !== 'free';
+
+                const g = document.createElement('div');
+                g.className = 'scale-guide' + (isTonic ? ' is-tonic' : '');
+                g.style.left = (x * 100) + '%';
+                el.appendChild(g);
+
+                if (showLabels) {
+                    const noteOct = Math.floor(midi / 12) - 1;
+                    const lbl = document.createElement('span');
+                    lbl.className = 'scale-guide-label' + (isTonic ? ' is-tonic' : '');
+                    lbl.textContent = NOTE_NAMES[semitone] + noteOct;
+                    lbl.style.left = (x * 100) + '%';
+                    el.appendChild(lbl);
+                }
+            }
         }
     }
 
@@ -995,8 +1034,16 @@
         });
 
         // Scale & key
-        $('scale-select').addEventListener('change', e => { currentScale = e.target.value; });
-        $('key-select').addEventListener('change', e => { currentKey = parseInt(e.target.value); });
+        $('scale-select').addEventListener('change', e => { currentScale = e.target.value; buildFreqGuides(); });
+        $('key-select').addEventListener('change', e => { currentKey = parseInt(e.target.value); buildFreqGuides(); });
+
+        // Grid toggle
+        $('grid-toggle').addEventListener('click', () => {
+            showGrid = !showGrid;
+            $('grid-toggle').textContent = showGrid ? 'On' : 'Off';
+            $('grid-toggle').classList.toggle('active', showGrid);
+            buildFreqGuides();
+        });
 
         // Effects
         $('delay-mix').addEventListener('input', e => {
