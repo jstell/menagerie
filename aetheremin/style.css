@@ -903,6 +903,7 @@ select option {
 
 .toggle-pill {
     padding: 3px 14px;
+    min-height: 32px;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border-color);
     border-radius: 20px;
@@ -910,6 +911,7 @@ select option {
     cursor: pointer;
     font-size: 0.75rem;
     transition: all 0.2s;
+    touch-action: manipulation;
 }
 
 .toggle-pill:hover {
