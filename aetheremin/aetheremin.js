@@ -123,6 +123,7 @@
     let nextTrackId = 1;
     let countInTimeout = null;
     let countInDisplayInterval = null;
+    let countInVisualTimeouts = [];
 
     // Metronome
     let isMetronomeOn = false;
@@ -846,8 +847,10 @@
     function cancelCountIn() {
         clearTimeout(countInTimeout);
         clearInterval(countInDisplayInterval);
+        countInVisualTimeouts.forEach(clearTimeout);
         countInTimeout = null;
         countInDisplayInterval = null;
+        countInVisualTimeouts = [];
         $('loop-rec-btn').innerHTML = '&#9679; LOOP';
         $('loop-rec-btn').classList.remove('counting');
         $('loop-timer').textContent = '0:00';
@@ -940,7 +943,15 @@
     }
 
     function beginCountInFirst() {
-        // 3-2-1 count-in before the first loop
+        if (isMetronomeOn) {
+            beginCountInFirstMetroSync();
+        } else {
+            beginCountInFirstFixed();
+        }
+    }
+
+    function beginCountInFirstFixed() {
+        // 3-2-1 count-in at 1s per beat
         let count = 3;
         $('loop-rec-btn').innerHTML = 'IN ' + count + '...';
         $('loop-rec-btn').classList.add('counting');
@@ -961,6 +972,45 @@
             }
         };
         countInTimeout = setTimeout(tick, 1000);
+    }
+
+    function beginCountInFirstMetroSync() {
+        // Align count-in and recording start to metronome beat boundaries.
+        // Recording starts on the first beat-1 (downbeat) that is at least
+        // 3 beats away, so 3, 2, 1 fall on the preceding metronome beats.
+        // Audio clicks come from the metronome itself — no duplicates needed.
+        const beatInterval = 60 / metronomeBpm; // seconds
+        const now = audioCtx.currentTime;
+
+        // metronomeNextBeatTime is the AudioContext time of the next scheduled beat,
+        // whose index is metronomeBeat. Walk forward to find the next downbeat (0)
+        // that leaves room for a 3-beat count-in.
+        const beatsToNext0 = (METRO_BEATS_PER_MEASURE - metronomeBeat) % METRO_BEATS_PER_MEASURE;
+        let beat0Time = metronomeNextBeatTime + beatsToNext0 * beatInterval;
+        while (beat0Time - now < 3 * beatInterval + 0.1) {
+            beat0Time += METRO_BEATS_PER_MEASURE * beatInterval;
+        }
+
+        $('loop-rec-btn').classList.add('counting');
+        $('loop-rec-btn').innerHTML = 'IN...';
+        $('loop-timer').textContent = '...';
+
+        // Schedule visual count-in labels on the 3 beats before beat0Time
+        [3, 2, 1].forEach((n, i) => {
+            const delayMs = (beat0Time - (3 - i) * beatInterval - now) * 1000;
+            countInVisualTimeouts.push(setTimeout(() => {
+                $('loop-timer').textContent = n.toString();
+                $('loop-rec-btn').innerHTML = 'IN ' + n + '...';
+            }, delayMs));
+        });
+
+        // Start recording exactly on the downbeat
+        countInTimeout = setTimeout(() => {
+            countInVisualTimeouts = [];
+            countInTimeout = null;
+            $('loop-rec-btn').classList.remove('counting');
+            _actuallyStartLoopRecording();
+        }, (beat0Time - now) * 1000);
     }
 
     function beginCountInSync() {
