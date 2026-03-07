@@ -121,6 +121,8 @@
     let loopPlaybackStart = 0;
     let isLoopPlaying = false;
     let nextTrackId = 1;
+    let countInTimeout = null;
+    let countInDisplayInterval = null;
 
     // Visuals
     let vizCanvas, vizCtx, particleCanvas, particleCtx;
@@ -824,7 +826,94 @@
 
     function startLoopRecording() {
         if (isLoopRecording) { stopLoopRecording(); return; }
+        if (countInTimeout !== null) { cancelCountIn(); return; }
 
+        if (loopLength > 0) {
+            beginCountInSync();
+        } else {
+            beginCountInFirst();
+        }
+    }
+
+    function cancelCountIn() {
+        clearTimeout(countInTimeout);
+        clearInterval(countInDisplayInterval);
+        countInTimeout = null;
+        countInDisplayInterval = null;
+        $('loop-rec-btn').innerHTML = '&#9679; LOOP';
+        $('loop-rec-btn').classList.remove('counting');
+        $('loop-timer').textContent = '0:00';
+    }
+
+    function playCountInClick(accent) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination); // bypass destNode so clicks don't end up in recording
+        osc.frequency.value = accent ? 1200 : 900;
+        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.06);
+    }
+
+    function beginCountInFirst() {
+        // 3-2-1 count-in before the first loop
+        let count = 3;
+        $('loop-rec-btn').innerHTML = 'IN ' + count + '...';
+        $('loop-rec-btn').classList.add('counting');
+        $('loop-timer').textContent = count.toString();
+        playCountInClick(true);
+
+        const tick = () => {
+            count--;
+            if (count <= 0) {
+                countInTimeout = null;
+                $('loop-rec-btn').classList.remove('counting');
+                _actuallyStartLoopRecording();
+            } else {
+                $('loop-timer').textContent = count.toString();
+                $('loop-rec-btn').innerHTML = 'IN ' + count + '...';
+                playCountInClick(count === 1);
+                countInTimeout = setTimeout(tick, 1000);
+            }
+        };
+        countInTimeout = setTimeout(tick, 1000);
+    }
+
+    function beginCountInSync() {
+        // Wait for the next loop boundary, playing click cues in the lead-up
+        const waitStart = Date.now();
+        const elapsed = (waitStart - loopPlaybackStart) % loopLength;
+        const timeToNext = loopLength - elapsed;
+
+        $('loop-rec-btn').innerHTML = 'SYNC...';
+        $('loop-rec-btn').classList.add('counting');
+
+        // Schedule clicks at 1s intervals counting down to the loop boundary
+        // (accent on the 1-second-out click so you know "now!")
+        const numClicks = Math.min(3, Math.floor(timeToNext / 1000));
+        for (let i = numClicks; i >= 1; i--) {
+            setTimeout(() => playCountInClick(i === 1), timeToNext - i * 1000);
+        }
+
+        countInDisplayInterval = setInterval(() => {
+            const remaining = timeToNext - (Date.now() - waitStart);
+            if (remaining <= 0) { clearInterval(countInDisplayInterval); countInDisplayInterval = null; return; }
+            $('loop-timer').textContent = (remaining / 1000).toFixed(1) + 's';
+        }, 50);
+
+        countInTimeout = setTimeout(() => {
+            clearInterval(countInDisplayInterval);
+            countInDisplayInterval = null;
+            countInTimeout = null;
+            $('loop-rec-btn').classList.remove('counting');
+            _actuallyStartLoopRecording();
+        }, timeToNext);
+    }
+
+    function _actuallyStartLoopRecording() {
         loopChunks = [];
         loopRecorder = new MediaRecorder(destNode.stream, { mimeType: 'audio/webm' });
         loopRecorder.ondataavailable = e => { if (e.data.size > 0) loopChunks.push(e.data); };
