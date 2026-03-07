@@ -259,6 +259,24 @@
                     </div>
                 </div>
 
+                <!-- Metronome -->
+                <div class="control-group">
+                    <label class="group-label">Metronome</label>
+                    <div class="metro-controls">
+                        <div class="metro-top-row">
+                            <button id="metro-btn" class="rec-btn" title="Toggle Metronome (T)">&#9654; METRO</button>
+                            <div class="metro-bpm-wrap">
+                                <button class="metro-adj" id="metro-minus" title="Slower (−1 BPM)">&#8722;</button>
+                                <span id="metro-bpm-val">120</span>
+                                <span class="metro-unit">BPM</span>
+                                <button class="metro-adj" id="metro-plus" title="Faster (+1 BPM)">+</button>
+                            </div>
+                        </div>
+                        <input type="range" id="metro-bpm" min="40" max="240" value="120" step="1" class="metro-slider">
+                        <div class="metro-beats" id="metro-beats"></div>
+                    </div>
+                </div>
+
                 <!-- Record / Export -->
                 <div class="control-group">
                     <label class="group-label">Record / Export</label>

@@ -124,6 +124,14 @@
     let countInTimeout = null;
     let countInDisplayInterval = null;
 
+    // Metronome
+    let isMetronomeOn = false;
+    let metronomeBpm = 120;
+    let metronomeSchedulerInterval = null;
+    let metronomeBeat = 0;
+    let metronomeNextBeatTime = 0;
+    const METRO_BEATS_PER_MEASURE = 4;
+
     // Visuals
     let vizCanvas, vizCtx, particleCanvas, particleCtx;
     let particles = [];
@@ -858,6 +866,79 @@
         osc.stop(audioCtx.currentTime + 0.06);
     }
 
+    // =======================================================
+    // METRONOME
+    // =======================================================
+
+    function startMetronome() {
+        stopMetronome();
+        isMetronomeOn = true;
+        metronomeBeat = 0;
+        metronomeNextBeatTime = audioCtx.currentTime;
+        metronomeSchedulerInterval = setInterval(metronomeScheduler, 25);
+        $('metro-btn').textContent = '\u25a0 METRO';
+        $('metro-btn').classList.add('metro-on');
+    }
+
+    function stopMetronome() {
+        isMetronomeOn = false;
+        clearInterval(metronomeSchedulerInterval);
+        metronomeSchedulerInterval = null;
+        $('metro-btn').textContent = '\u25b6 METRO';
+        $('metro-btn').classList.remove('metro-on');
+        document.querySelectorAll('.metro-beat-dot').forEach(d => d.classList.remove('active', 'accent'));
+    }
+
+    function toggleMetronome() {
+        if (isMetronomeOn) stopMetronome(); else startMetronome();
+    }
+
+    function metronomeScheduler() {
+        const lookahead = 0.1; // seconds to schedule ahead
+        const interval = 60 / metronomeBpm;
+        while (metronomeNextBeatTime < audioCtx.currentTime + lookahead) {
+            const isAccent = metronomeBeat === 0;
+            // Schedule audio click via AudioContext clock for accurate timing
+            scheduleMetronomeClick(metronomeNextBeatTime, isAccent);
+            // Schedule visual update with matching delay
+            const delayMs = Math.max(0, (metronomeNextBeatTime - audioCtx.currentTime) * 1000);
+            const beatIdx = metronomeBeat;
+            setTimeout(() => updateMetronomeDots(beatIdx), delayMs);
+            metronomeBeat = (metronomeBeat + 1) % METRO_BEATS_PER_MEASURE;
+            metronomeNextBeatTime += interval;
+        }
+    }
+
+    function scheduleMetronomeClick(time, accent) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = accent ? 1200 : 900;
+        gain.gain.setValueAtTime(0.3, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+        osc.start(time);
+        osc.stop(time + 0.06);
+    }
+
+    function updateMetronomeDots(beatIdx) {
+        document.querySelectorAll('.metro-beat-dot').forEach((d, i) => {
+            d.classList.toggle('active', i === beatIdx);
+            d.classList.toggle('accent', i === beatIdx && beatIdx === 0);
+        });
+    }
+
+    function setMetronomeBpm(bpm) {
+        metronomeBpm = Math.max(40, Math.min(240, bpm));
+        $('metro-bpm').value = metronomeBpm;
+        $('metro-bpm-val').textContent = metronomeBpm;
+        // If running, reset the scheduler so tempo change takes effect immediately
+        if (isMetronomeOn) {
+            metronomeNextBeatTime = audioCtx.currentTime;
+            metronomeBeat = 0;
+        }
+    }
+
     function beginCountInFirst() {
         // 3-2-1 count-in before the first loop
         let count = 3;
@@ -1197,6 +1278,18 @@
         $('play-btn').addEventListener('click', playRecording);
         $('download-btn').addEventListener('click', downloadRecording);
 
+        // Metronome
+        const metroDots = $('metro-beats');
+        for (let i = 0; i < METRO_BEATS_PER_MEASURE; i++) {
+            const d = document.createElement('div');
+            d.className = 'metro-beat-dot';
+            metroDots.appendChild(d);
+        }
+        $('metro-btn').addEventListener('click', toggleMetronome);
+        $('metro-bpm').addEventListener('input', e => setMetronomeBpm(parseInt(e.target.value)));
+        $('metro-minus').addEventListener('click', () => setMetronomeBpm(metronomeBpm - 1));
+        $('metro-plus').addEventListener('click', () => setMetronomeBpm(metronomeBpm + 1));
+
         // Loop station
         $('loop-rec-btn').addEventListener('click', startLoopRecording);
         $('loop-play-btn').addEventListener('click', startLoopPlayback);
@@ -1287,6 +1380,8 @@
             if (e.key === 'r' || e.key === 'R') toggleRecording();
             // L: loop
             if (e.key === 'l' || e.key === 'L') startLoopRecording();
+            // T: metronome
+            if (e.key === 't' || e.key === 'T') toggleMetronome();
             // M: mic sample
             if (e.key === 'm' || e.key === 'M') startMicSample();
         });

@@ -868,6 +868,99 @@ select option {
 }
 
 /* ============================
+   Metronome
+   ============================ */
+
+.metro-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.metro-top-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.metro-bpm-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.metro-adj {
+    width: 24px;
+    height: 24px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: all 0.15s;
+    padding: 0;
+}
+
+.metro-adj:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+#metro-bpm-val {
+    font-size: 1rem;
+    font-family: 'Courier New', monospace;
+    color: var(--text-primary);
+    min-width: 32px;
+    text-align: center;
+}
+
+.metro-unit {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.metro-slider {
+    width: 100%;
+    accent-color: var(--accent);
+}
+
+.metro-beats {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 2px 0 4px;
+}
+
+.metro-beat-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid var(--border-color);
+    transition: background 0.05s, box-shadow 0.05s;
+}
+
+.metro-beat-dot.active {
+    background: rgba(255,255,255,0.35);
+    border-color: rgba(255,255,255,0.5);
+}
+
+.metro-beat-dot.accent {
+    background: var(--accent);
+    border-color: var(--accent-glow);
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.rec-btn.metro-on {
+    background: rgba(123, 47, 247, 0.15);
+    border-color: var(--accent);
+    color: var(--accent-glow);
+}
+
+/* ============================
    Responsive
    ============================ */
 
