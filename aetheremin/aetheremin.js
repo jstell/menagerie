@@ -85,8 +85,8 @@
     let particleAmount = 60;
     let showGrid = false;
     let animalPeriodicWaves = {};
-    let micSampleWave = null; // PeriodicWave from mic sample
-    let micSampleBuffer = null; // Raw AudioBuffer for playback preview
+    let micSampleBuffer = null; // Raw AudioBuffer for sample playback
+    let micSampleBaseFreq = 261.63; // Assumed fundamental of sample (C4 default)
 
     // Multi-touch voices: pointerId -> voice
     const voices = new Map();
@@ -320,6 +320,31 @@
     // MIC SAMPLING
     // =======================================================
 
+    function detectPitch(audioBuf) {
+        const sr = audioBuf.sampleRate;
+        const data = audioBuf.getChannelData(0);
+        // Use a 4096-sample window from the middle of the recording
+        const winSize = 4096;
+        const start = Math.max(0, Math.floor(data.length / 2) - winSize / 2);
+        const buf = data.slice(start, start + winSize);
+
+        // Autocorrelation-based pitch detection
+        const minPeriod = Math.floor(sr / 1200); // max ~1200 Hz
+        const maxPeriod = Math.floor(sr / 60);   // min ~60 Hz
+        let bestPeriod = -1, bestCorr = -1;
+
+        for (let lag = minPeriod; lag <= maxPeriod; lag++) {
+            let corr = 0;
+            for (let i = 0; i < winSize - lag; i++) corr += buf[i] * buf[i + lag];
+            if (corr > bestCorr) { bestCorr = corr; bestPeriod = lag; }
+        }
+
+        if (bestPeriod < 1) return null;
+        const freq = sr / bestPeriod;
+        // Sanity check: must be in a reasonable musical range
+        return (freq >= 60 && freq <= 1200) ? freq : null;
+    }
+
     async function startMicSample() {
         const btn = $('mic-sample-btn');
         const status = $('mic-status');
@@ -357,44 +382,8 @@
             const audioBuf = await audioCtx.decodeAudioData(arrayBuf);
             micSampleBuffer = audioBuf;
 
-            // Extract waveform: analyze a stable middle section
-            const channelData = audioBuf.getChannelData(0);
-            const fftSize = 4096;
-            // Use the middle of the recording for the most stable signal
-            const midStart = Math.max(0, Math.floor(channelData.length / 2) - fftSize / 2);
-            const segment = channelData.slice(midStart, midStart + fftSize);
-
-            // Compute FFT manually using the segment
-            const numHarmonics = 64;
-            const realCoeffs = new Float32Array(numHarmonics);
-            const imagCoeffs = new Float32Array(numHarmonics);
-            const N = segment.length;
-
-            for (let k = 1; k < numHarmonics; k++) {
-                let re = 0, im = 0;
-                for (let n = 0; n < N; n++) {
-                    const angle = (2 * Math.PI * k * n) / N;
-                    re += segment[n] * Math.cos(angle);
-                    im -= segment[n] * Math.sin(angle);
-                }
-                realCoeffs[k] = re / N;
-                imagCoeffs[k] = im / N;
-            }
-
-            // Normalize by peak magnitude
-            let maxMag = 0;
-            for (let k = 1; k < numHarmonics; k++) {
-                const mag = Math.sqrt(realCoeffs[k] ** 2 + imagCoeffs[k] ** 2);
-                if (mag > maxMag) maxMag = mag;
-            }
-            if (maxMag > 0) {
-                for (let k = 1; k < numHarmonics; k++) {
-                    realCoeffs[k] /= maxMag;
-                    imagCoeffs[k] /= maxMag;
-                }
-            }
-
-            micSampleWave = audioCtx.createPeriodicWave(realCoeffs, imagCoeffs);
+            // Detect fundamental frequency via autocorrelation on middle of recording
+            micSampleBaseFreq = detectPitch(audioBuf) || 261.63;
 
             status.textContent = 'Sampled!';
             status.className = 'mic-status ready';
@@ -436,9 +425,8 @@
     // =======================================================
 
     function applyWaveformToOsc(osc, wave) {
-        if (wave === 'sample' && micSampleWave) {
-            osc.setPeriodicWave(micSampleWave);
-        } else if (ANIMAL_WAVES.includes(wave) && animalPeriodicWaves[wave]) {
+        if (!osc) return;
+        if (ANIMAL_WAVES.includes(wave) && animalPeriodicWaves[wave]) {
             osc.setPeriodicWave(animalPeriodicWaves[wave]);
         } else {
             // Standard waveforms: sine, triangle, sawtooth, square
@@ -452,7 +440,8 @@
             b.classList.toggle('active', b.dataset.wave === wave);
         });
         for (const voice of voices.values()) {
-            applyWaveformToOsc(voice.osc, wave);
+            if (voice.osc) applyWaveformToOsc(voice.osc, wave);
+            // Note: switching to/from sample mid-touch takes effect on next touch
         }
     }
 
@@ -461,32 +450,48 @@
     // =======================================================
 
     function createVoice(pointerId) {
-        const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         gain.gain.setValueAtTime(0, audioCtx.currentTime);
 
-        // Per-voice vibrato LFO
         const vibOsc = audioCtx.createOscillator();
         vibOsc.type = 'sine';
         vibOsc.frequency.value = parseFloat($('vibrato-rate').value);
         const vibGain = audioCtx.createGain();
         vibGain.gain.value = 0;
-        vibOsc.connect(vibGain);
-        vibGain.connect(osc.frequency);
         vibOsc.start();
 
-        applyWaveformToOsc(osc, currentWaveform);
-        osc.frequency.value = 440;
-        osc.connect(gain);
+        let osc = null, srcNode = null;
+
+        if (currentWaveform === 'sample' && micSampleBuffer) {
+            // Sample-based voice: loop the full buffer, pitch via playbackRate
+            srcNode = audioCtx.createBufferSource();
+            srcNode.buffer = micSampleBuffer;
+            srcNode.loop = true;
+            srcNode.playbackRate.value = 1;
+            // Vibrato modulates playbackRate
+            vibOsc.connect(vibGain);
+            vibGain.connect(srcNode.playbackRate);
+            srcNode.connect(gain);
+            srcNode.start();
+        } else {
+            // Oscillator-based voice
+            osc = audioCtx.createOscillator();
+            applyWaveformToOsc(osc, currentWaveform);
+            osc.frequency.value = 440;
+            vibOsc.connect(vibGain);
+            vibGain.connect(osc.frequency);
+            osc.connect(gain);
+            osc.start();
+        }
+
         gain.connect(effectsInput);
-        osc.start();
 
         // Create glow element
         const glowEl = document.createElement('div');
         glowEl.className = 'touch-glow';
         $('glow-container').appendChild(glowEl);
 
-        const voice = { pointerId, osc, gain, vibOsc, vibGain, glowEl, freq: 440, vol: 0, x: 0, y: 0 };
+        const voice = { pointerId, osc, srcNode, gain, vibOsc, vibGain, glowEl, freq: 440, vol: 0, x: 0, y: 0 };
         voices.set(pointerId, voice);
         return voice;
     }
@@ -499,7 +504,8 @@
         v.gain.gain.linearRampToValueAtTime(0, now + 0.08);
 
         setTimeout(() => {
-            try { v.osc.stop(); v.osc.disconnect(); } catch (_) {}
+            if (v.osc) { try { v.osc.stop(); v.osc.disconnect(); } catch (_) {} }
+            if (v.srcNode) { try { v.srcNode.stop(); v.srcNode.disconnect(); } catch (_) {} }
             try { v.vibOsc.stop(); v.vibOsc.disconnect(); v.vibGain.disconnect(); } catch (_) {}
             try { v.gain.disconnect(); } catch (_) {}
             if (v.glowEl && v.glowEl.parentNode) v.glowEl.parentNode.removeChild(v.glowEl);
@@ -519,12 +525,19 @@
         voice.x = coords.x;
         voice.y = coords.y;
 
-        voice.osc.frequency.linearRampToValueAtTime(freq, now + portSec);
-        voice.gain.gain.linearRampToValueAtTime(vol * 0.4, now + 0.05);
+        if (voice.srcNode) {
+            // Sample voice: control pitch via playbackRate
+            const rate = freq / micSampleBaseFreq;
+            voice.srcNode.playbackRate.linearRampToValueAtTime(rate, now + portSec);
+            const depth = parseFloat($('vibrato-depth').value);
+            voice.vibGain.gain.setValueAtTime(depth > 0 ? rate * (depth / 100) * 0.05 : 0, now);
+        } else {
+            voice.osc.frequency.linearRampToValueAtTime(freq, now + portSec);
+            const depth = parseFloat($('vibrato-depth').value);
+            voice.vibGain.gain.setValueAtTime(depth > 0 ? freq * (depth / 100) * 0.05 : 0, now);
+        }
 
-        // Vibrato depth
-        const depth = parseFloat($('vibrato-depth').value);
-        voice.vibGain.gain.setValueAtTime(depth > 0 ? freq * (depth / 100) * 0.05 : 0, now);
+        voice.gain.gain.linearRampToValueAtTime(vol * 0.4, now + 0.05);
 
         // Glow
         if (voice.glowEl) {
@@ -1437,7 +1450,7 @@
                 selectWaveform(ANIMAL_WAVES[e.key - 5]);
             }
             // 9: mic sample
-            if (e.key === '9' && micSampleWave) selectWaveform('sample');
+            if (e.key === '9' && micSampleBuffer) selectWaveform('sample');
             // Space: toggle controls
             if (e.key === ' ' && !e.target.closest('button')) {
                 e.preventDefault();
