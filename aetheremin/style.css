@@ -201,9 +201,9 @@ html, body {
     color: var(--text-secondary);
     font-family: 'Courier New', monospace;
     opacity: 0.5;
-    position: absolute;
-    bottom: 2px;
-    right: 8px;
+    margin-left: auto;
+    padding-left: 0.5rem;
+    white-space: nowrap;
     pointer-events: none;
 }
 
