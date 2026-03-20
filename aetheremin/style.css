@@ -196,6 +196,17 @@ html, body {
     line-height: 1;
 }
 
+#build-info {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    opacity: 0.5;
+    position: absolute;
+    bottom: 2px;
+    right: 8px;
+    pointer-events: none;
+}
+
 /* ============================
    Play Area
    ============================ */

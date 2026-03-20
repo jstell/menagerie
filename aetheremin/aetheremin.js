@@ -6,6 +6,8 @@
 (() => {
     'use strict';
 
+    const BUILD_INFO = '2026-03-20 23:34 UTC (17fde73)';
+
     // ---- Constants ----
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -86,7 +88,11 @@
     let showGrid = false;
     let animalPeriodicWaves = {};
     let micSampleBuffer = null; // Raw AudioBuffer for sample playback
-    let micSampleBaseFreq = 261.63; // Assumed fundamental of sample (C4 default)
+    let micSampleBaseFreq = 261.63; // Fixed C4 reference — playbackRate = targetHz / 261.63
+    let micRecorder = null;
+    let micStream = null;
+    let micRecording = false;
+    let micRecTimerInterval = null;
 
     // Multi-touch voices: pointerId -> voice
     const voices = new Map();
@@ -320,29 +326,12 @@
     // MIC SAMPLING
     // =======================================================
 
-    function detectPitch(audioBuf) {
-        const sr = audioBuf.sampleRate;
-        const data = audioBuf.getChannelData(0);
-        // Use a 4096-sample window from the middle of the recording
-        const winSize = 4096;
-        const start = Math.max(0, Math.floor(data.length / 2) - winSize / 2);
-        const buf = data.slice(start, start + winSize);
-
-        // Autocorrelation-based pitch detection
-        const minPeriod = Math.floor(sr / 1200); // max ~1200 Hz
-        const maxPeriod = Math.floor(sr / 60);   // min ~60 Hz
-        let bestPeriod = -1, bestCorr = -1;
-
-        for (let lag = minPeriod; lag <= maxPeriod; lag++) {
-            let corr = 0;
-            for (let i = 0; i < winSize - lag; i++) corr += buf[i] * buf[i + lag];
-            if (corr > bestCorr) { bestCorr = corr; bestPeriod = lag; }
+    async function toggleMicSample() {
+        if (micRecording) {
+            stopMicSample();
+        } else {
+            await startMicSample();
         }
-
-        if (bestPeriod < 1) return null;
-        const freq = sr / bestPeriod;
-        // Sanity check: must be in a reasonable musical range
-        return (freq >= 60 && freq <= 1200) ? freq : null;
     }
 
     async function startMicSample() {
@@ -350,54 +339,62 @@
         const status = $('mic-status');
 
         try {
-            status.textContent = 'Listening...';
-            status.className = 'mic-status sampling';
-            btn.classList.add('sampling');
-
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-            // Use MediaRecorder to capture the full audio
-            const chunks = [];
-            const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-
-            const recordingDone = new Promise(resolve => { recorder.onstop = resolve; });
-            recorder.start();
-
-            // 3-second countdown
-            for (let i = 3; i >= 1; i--) {
-                status.textContent = `Recording ${i}s...`;
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-
-            recorder.stop();
-            stream.getTracks().forEach(t => t.stop());
-            await recordingDone;
-
-            status.textContent = 'Processing...';
-
-            // Decode the recorded audio into a buffer
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            const arrayBuf = await blob.arrayBuffer();
-            const audioBuf = await audioCtx.decodeAudioData(arrayBuf);
-            micSampleBuffer = audioBuf;
-
-            // Detect fundamental frequency via autocorrelation on middle of recording
-            micSampleBaseFreq = detectPitch(audioBuf) || 261.63;
-
-            status.textContent = 'Sampled!';
-            status.className = 'mic-status ready';
-            btn.classList.remove('sampling');
-
-            addSampleWaveButton();
-            $('mic-preview-btn').disabled = false;
-            selectWaveform('sample');
-
+            micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
             status.textContent = 'Mic denied';
-            status.className = 'mic-status';
-            btn.classList.remove('sampling');
+            return;
         }
+
+        const chunks = [];
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+        micRecorder = new MediaRecorder(micStream, mimeType ? { mimeType } : undefined);
+        micRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+        micRecorder.onstop = async () => {
+            clearInterval(micRecTimerInterval);
+            micRecording = false;
+            btn.textContent = '\uD83C\uDFA4 SAMPLE MIC';
+            btn.classList.remove('sampling');
+            status.textContent = 'Processing...';
+            status.className = 'mic-status';
+
+            try {
+                const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
+                const arrayBuf = await blob.arrayBuffer();
+                micSampleBuffer = await audioCtx.decodeAudioData(arrayBuf);
+                // Fixed C4 as base — playbackRate = targetHz / 261.63
+                micSampleBaseFreq = 261.63;
+
+                status.textContent = 'Sampled!';
+                status.className = 'mic-status ready';
+                addSampleWaveButton();
+                $('mic-preview-btn').disabled = false;
+                selectWaveform('sample');
+            } catch (e) {
+                status.textContent = 'Decode error';
+            }
+
+            if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+        };
+
+        micRecorder.start();
+        micRecording = true;
+        btn.textContent = '\u23F9 STOP REC';
+        btn.classList.add('sampling');
+
+        // Auto-stop at 15 seconds, show elapsed time
+        let elapsed = 0;
+        status.textContent = 'Recording 0s...';
+        status.className = 'mic-status sampling';
+        micRecTimerInterval = setInterval(() => {
+            elapsed++;
+            status.textContent = `Recording ${elapsed}s...`;
+            if (elapsed >= 15) stopMicSample();
+        }, 1000);
+    }
+
+    function stopMicSample() {
+        if (micRecorder && micRecording) micRecorder.stop();
     }
 
     function playMicPreview() {
@@ -1363,7 +1360,7 @@
         $('loop-clear-btn').addEventListener('click', clearLoopTracks);
 
         // Mic sample
-        $('mic-sample-btn').addEventListener('click', startMicSample);
+        $('mic-sample-btn').addEventListener('click', toggleMicSample);
         $('mic-preview-btn').addEventListener('click', playMicPreview);
 
         // Resize
@@ -1463,7 +1460,7 @@
             // T: metronome
             if (e.key === 't' || e.key === 'T') toggleMetronome();
             // M: mic sample
-            if (e.key === 'm' || e.key === 'M') startMicSample();
+            if (e.key === 'm' || e.key === 'M') toggleMicSample();
         });
     }
 
@@ -1482,6 +1479,7 @@
     // =======================================================
 
     function init() {
+        if (BUILD_INFO !== '2026-03-20 23:34 UTC (17fde73)') $('build-info').textContent = BUILD_INFO;
         vizCanvas = $('viz-canvas');
         vizCtx = vizCanvas.getContext('2d');
         particleCanvas = $('particle-canvas');
