@@ -1313,6 +1313,9 @@
             $('particle-val').textContent = e.target.value;
         });
         $('theme-select').addEventListener('change', e => setTheme(e.target.value));
+        $('light-mode-btn').addEventListener('click', () => {
+            setLightMode(!document.body.classList.contains('light-mode'));
+        });
 
         // Toggle controls
         $('toggle-controls').addEventListener('click', () => $('controls-panel').classList.toggle('collapsed'));
@@ -1360,8 +1363,22 @@
 
     function setTheme(theme) {
         currentTheme = theme;
-        document.body.className = 'theme-' + theme;
+        const isLight = document.body.classList.contains('light-mode');
+        document.body.className = 'theme-' + theme + (isLight ? ' light-mode' : '');
         $('theme-select').value = theme;
+    }
+
+    function setLightMode(enabled) {
+        if (enabled) {
+            document.body.classList.add('light-mode');
+            $('light-mode-btn').textContent = '\u263D'; // moon
+            $('light-mode-btn').title = 'Switch to Dark Mode';
+        } else {
+            document.body.classList.remove('light-mode');
+            $('light-mode-btn').textContent = '\u2600'; // sun
+            $('light-mode-btn').title = 'Switch to Light Mode';
+        }
+        localStorage.setItem('aetheremin-light-mode', enabled ? '1' : '0');
     }
 
     function applyPreset(name) {
@@ -1465,6 +1482,7 @@
             bindControls();
             bindKeyboard();
             setTheme('cosmic');
+            setLightMode(localStorage.getItem('aetheremin-light-mode') === '1');
             animate();
         });
     }

@@ -190,6 +190,12 @@ html, body {
     text-align: right;
 }
 
+#light-mode-btn {
+    font-size: 1.1rem;
+    padding: 3px 8px;
+    line-height: 1;
+}
+
 /* ============================
    Play Area
    ============================ */
@@ -1060,6 +1066,93 @@ select option {
 .scale-guide-label.is-tonic {
     color: var(--theme-secondary);
     opacity: 1;
+}
+
+/* ============================
+   Light Mode
+   ============================ */
+
+body.light-mode {
+    --bg-dark: #eeeef8;
+    --bg-panel: #ffffff;
+    --bg-control: #f4f4fb;
+    --border-color: #c8c8e0;
+    --text-primary: #1a1a2e;
+    --text-secondary: #55557a;
+}
+
+body.light-mode #start-screen {
+    background: radial-gradient(ellipse at center, #d8d0f8 0%, #eeeef8 70%);
+}
+
+@keyframes startPulseLM {
+    0%, 100% { background: radial-gradient(ellipse at center, #d8d0f8 0%, #eeeef8 70%); }
+    50% { background: radial-gradient(ellipse at center, #c8c0f0 0%, #eeeef8 70%); }
+}
+
+body.light-mode #start-screen {
+    animation: startPulseLM 4s ease-in-out infinite;
+}
+
+body.light-mode #play-area {
+    background: radial-gradient(ellipse at 50% 50%, #dcdcf4 0%, var(--bg-dark) 100%);
+}
+
+body.light-mode #volume-meter {
+    background: rgba(0,0,0,0.06);
+}
+
+body.light-mode #pitch-bar {
+    background: rgba(0,0,0,0.06);
+}
+
+body.light-mode input[type="range"] {
+    background: rgba(0,0,0,0.1);
+}
+
+body.light-mode .wave-btn {
+    background: rgba(0,0,0,0.03);
+}
+
+body.light-mode .select-wrapper select {
+    background: rgba(0,0,0,0.04);
+}
+
+body.light-mode select option {
+    background: var(--bg-panel);
+}
+
+body.light-mode .loop-track {
+    background: rgba(0,0,0,0.03);
+}
+
+body.light-mode .loop-track-bar {
+    background: rgba(0,0,0,0.06);
+}
+
+body.light-mode .metro-beat-dot {
+    background: rgba(0,0,0,0.08);
+}
+
+body.light-mode .metro-beat-dot.active {
+    background: rgba(0,0,0,0.3);
+    border-color: rgba(0,0,0,0.4);
+}
+
+body.light-mode .preset-btn {
+    background: rgba(0,0,0,0.03);
+}
+
+body.light-mode .rec-btn {
+    background: rgba(0,0,0,0.04);
+}
+
+body.light-mode .metro-adj {
+    background: rgba(0,0,0,0.04);
+}
+
+body.light-mode .toggle-pill {
+    background: rgba(0,0,0,0.03);
 }
 
 /* ============================
