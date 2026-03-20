@@ -6,7 +6,7 @@
 (() => {
     'use strict';
 
-    const BUILD_INFO = '2026-03-20 23:50 UTC (63d6301)';
+    const BUILD_INFO = '2026-03-20 23:50 UTC (2d897d7)';
 
     // ---- Constants ----
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -363,6 +363,7 @@
     }
 
     async function startMicSample() {
+        if (micRecording) return;
         const btn = $('mic-sample-btn');
         const status = $('mic-status');
 
@@ -1390,9 +1391,13 @@
 
         // Mic sample — hold to record, release to stop
         const micBtn = $('mic-sample-btn');
-        micBtn.addEventListener('pointerdown', e => { e.preventDefault(); startMicSample(); });
+        micBtn.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            micBtn.setPointerCapture(e.pointerId); // keep events on this element even if touch drifts
+            startMicSample();
+        });
         micBtn.addEventListener('pointerup', () => stopMicSample());
-        micBtn.addEventListener('pointerleave', () => { if (micRecording) stopMicSample(); });
+        micBtn.addEventListener('pointercancel', () => stopMicSample());
         $('mic-preview-btn').addEventListener('click', playMicPreview);
 
         // Resize
@@ -1511,7 +1516,7 @@
     // =======================================================
 
     function init() {
-        $('build-info').textContent = BUILD_INFO !== '2026-03-20 23:50 UTC (63d6301)' ? BUILD_INFO : 'dev';
+        $('build-info').textContent = BUILD_INFO !== '2026-03-20 23:50 UTC (2d897d7)' ? BUILD_INFO : 'dev';
         vizCanvas = $('viz-canvas');
         vizCtx = vizCanvas.getContext('2d');
         particleCanvas = $('particle-canvas');
