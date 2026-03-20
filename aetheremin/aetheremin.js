@@ -6,7 +6,7 @@
 (() => {
     'use strict';
 
-    const BUILD_INFO = '2026-03-20 23:34 UTC (17fde73)';
+    const BUILD_INFO = '2026-03-20 23:41 UTC (49dd899)';
 
     // ---- Constants ----
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -326,12 +326,40 @@
     // MIC SAMPLING
     // =======================================================
 
-    async function toggleMicSample() {
-        if (micRecording) {
-            stopMicSample();
-        } else {
-            await startMicSample();
+    function trimSilence(audioBuf, threshold = 0.015) {
+        const sr = audioBuf.sampleRate;
+        const numCh = audioBuf.numberOfChannels;
+        const len = audioBuf.length;
+
+        // Find first and last sample above threshold across all channels
+        let startSample = 0, endSample = len - 1;
+
+        outer: for (let i = 0; i < len; i++) {
+            for (let ch = 0; ch < numCh; ch++) {
+                if (Math.abs(audioBuf.getChannelData(ch)[i]) >= threshold) {
+                    startSample = Math.max(0, i - Math.floor(sr * 0.01)); // 10ms pre-roll
+                    break outer;
+                }
+            }
         }
+
+        outer: for (let i = len - 1; i >= startSample; i--) {
+            for (let ch = 0; ch < numCh; ch++) {
+                if (Math.abs(audioBuf.getChannelData(ch)[i]) >= threshold) {
+                    endSample = Math.min(len - 1, i + Math.floor(sr * 0.01)); // 10ms post-roll
+                    break outer;
+                }
+            }
+        }
+
+        const trimmedLen = endSample - startSample + 1;
+        if (trimmedLen <= 0) return audioBuf; // nothing to trim, return original
+
+        const trimmed = audioCtx.createBuffer(numCh, trimmedLen, sr);
+        for (let ch = 0; ch < numCh; ch++) {
+            trimmed.copyToChannel(audioBuf.getChannelData(ch).slice(startSample, endSample + 1), ch);
+        }
+        return trimmed;
     }
 
     async function startMicSample() {
@@ -361,7 +389,8 @@
             try {
                 const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
                 const arrayBuf = await blob.arrayBuffer();
-                micSampleBuffer = await audioCtx.decodeAudioData(arrayBuf);
+                const decoded = await audioCtx.decodeAudioData(arrayBuf);
+                micSampleBuffer = trimSilence(decoded);
                 // Fixed C4 as base — playbackRate = targetHz / 261.63
                 micSampleBaseFreq = 261.63;
 
@@ -1359,8 +1388,11 @@
         $('loop-stop-btn').addEventListener('click', () => { stopLoopRecording(); stopLoopPlayback(); });
         $('loop-clear-btn').addEventListener('click', clearLoopTracks);
 
-        // Mic sample
-        $('mic-sample-btn').addEventListener('click', toggleMicSample);
+        // Mic sample — hold to record, release to stop
+        const micBtn = $('mic-sample-btn');
+        micBtn.addEventListener('pointerdown', e => { e.preventDefault(); startMicSample(); });
+        micBtn.addEventListener('pointerup', () => stopMicSample());
+        micBtn.addEventListener('pointerleave', () => { if (micRecording) stopMicSample(); });
         $('mic-preview-btn').addEventListener('click', playMicPreview);
 
         // Resize
@@ -1460,7 +1492,7 @@
             // T: metronome
             if (e.key === 't' || e.key === 'T') toggleMetronome();
             // M: mic sample
-            if (e.key === 'm' || e.key === 'M') toggleMicSample();
+            if (e.key === 'm' || e.key === 'M') { if (micRecording) stopMicSample(); else startMicSample(); }
         });
     }
 
@@ -1479,7 +1511,7 @@
     // =======================================================
 
     function init() {
-        if (BUILD_INFO !== '2026-03-20 23:34 UTC (17fde73)') $('build-info').textContent = BUILD_INFO;
+        if (BUILD_INFO !== '2026-03-20 23:41 UTC (49dd899)') $('build-info').textContent = BUILD_INFO;
         vizCanvas = $('viz-canvas');
         vizCtx = vizCanvas.getContext('2d');
         particleCanvas = $('particle-canvas');
