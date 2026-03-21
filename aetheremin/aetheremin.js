@@ -6,7 +6,7 @@
 (() => {
     'use strict';
 
-    const BUILD_INFO = '2026-03-21 00:03 UTC (9b347b3)';
+    const BUILD_INFO = 'undefined';
 
     // ---- Constants ----
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -585,7 +585,8 @@
             voice.vibGain.gain.setValueAtTime(depth > 0 ? freq * (depth / 100) * 0.05 : 0, now);
         }
 
-        voice.gain.gain.linearRampToValueAtTime(vol * 0.4, now + 0.05);
+        const gainScale = voice.srcNode ? 1.0 : 0.4;
+        voice.gain.gain.linearRampToValueAtTime(vol * gainScale, now + 0.05);
 
         // Glow
         if (voice.glowEl) {
