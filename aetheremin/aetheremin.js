@@ -6,7 +6,7 @@
 (() => {
     'use strict';
 
-    const BUILD_INFO = 'undefined';
+    const BUILD_INFO = '2026-03-21 00:15 UTC (60778a8)';
 
     // ---- Constants ----
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
