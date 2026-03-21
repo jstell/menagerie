@@ -6,7 +6,7 @@
 (() => {
     'use strict';
 
-    const BUILD_INFO = '2026-03-21 00:17 UTC (3db6a13)';
+    const BUILD_INFO = '2026-03-21 00:21 UTC (1716c9d)';
 
     // ---- Constants ----
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -1538,7 +1538,7 @@
     // =======================================================
 
     function init() {
-        $('build-info').textContent = BUILD_INFO !== '__BUILD_INFO__' ? BUILD_INFO : 'dev';
+        $('build-info').textContent = BUILD_INFO !== '2026-03-21 00:21 UTC (1716c9d)' ? BUILD_INFO : 'dev';
         vizCanvas = $('viz-canvas');
         vizCtx = vizCanvas.getContext('2d');
         particleCanvas = $('particle-canvas');
