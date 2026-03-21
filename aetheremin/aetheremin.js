@@ -6,8 +6,6 @@
 (() => {
     'use strict';
 
-    const BUILD_INFO = '2026-03-21 00:24 UTC (8508086)';
-
     // ---- Constants ----
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -74,6 +72,8 @@
     };
 
     const ANIMAL_WAVES = ['cat', 'dog', 'bird', 'whale'];
+    // Base oscillator type per animal; null = use PeriodicWave
+    const ANIMAL_OSC_TYPES = { cat: 'triangle', dog: 'sawtooth', bird: 'sine', whale: null };
 
     // ---- State ----
     let audioCtx = null;
@@ -288,38 +288,80 @@
     // =======================================================
 
     function buildAnimalWaves() {
-        // Cat - nasal, strong odd harmonics
-        const catR = new Float32Array(32), catI = new Float32Array(32);
-        catI[1] = 1; catI[2] = 0.6; catI[3] = 0.8; catI[4] = 0.3;
-        catI[5] = 0.5; catI[6] = 0.15; catI[7] = 0.35; catI[8] = 0.1;
-        catI[9] = 0.2; catI[10] = 0.15;
-        for (let i = 11; i < 32; i++) catI[i] = 0.05 * Math.random();
-        animalPeriodicWaves.cat = audioCtx.createPeriodicWave(catR, catI);
-
-        // Dog - rich warm harmonics
-        const dogR = new Float32Array(32), dogI = new Float32Array(32);
-        dogI[1] = 1; dogI[2] = 0.8; dogI[3] = 0.5; dogI[4] = 0.6;
-        dogI[5] = 0.3; dogI[6] = 0.4; dogI[7] = 0.2; dogI[8] = 0.25;
-        dogI[9] = 0.15; dogI[10] = 0.2; dogI[11] = 0.1; dogI[12] = 0.12;
-        for (let i = 13; i < 32; i++) dogI[i] = 0.02;
-        animalPeriodicWaves.dog = audioCtx.createPeriodicWave(dogR, dogI);
-
-        // Bird - bright, high harmonics
-        const birdR = new Float32Array(32), birdI = new Float32Array(32);
-        birdI[1] = 0.5; birdI[2] = 0.3; birdI[3] = 0.7; birdI[4] = 0.9;
-        birdI[5] = 1; birdI[6] = 0.8; birdI[7] = 0.6; birdI[8] = 0.7;
-        birdI[9] = 0.4; birdI[10] = 0.5; birdI[11] = 0.3; birdI[12] = 0.4;
-        for (let i = 13; i < 24; i++) birdI[i] = Math.abs(0.2 * Math.cos(i * 0.5));
-        for (let i = 24; i < 32; i++) birdI[i] = 0.05;
-        animalPeriodicWaves.bird = audioCtx.createPeriodicWave(birdR, birdI);
-
-        // Whale - deep, ethereal
-        const whaleR = new Float32Array(32), whaleI = new Float32Array(32);
-        whaleI[1] = 1; whaleI[2] = 0.9; whaleI[3] = 0.4; whaleI[4] = 0.3;
-        whaleI[5] = 0.5; whaleI[6] = 0.1; whaleI[7] = 0.3; whaleI[8] = 0.05;
-        whaleI[9] = 0.2; whaleI[10] = 0.03;
-        for (let i = 11; i < 32; i++) whaleI[i] = 0.02;
+        // Whale only — cat/dog/bird use standard osc types + filter chains
+        const whaleR = new Float32Array(16), whaleI = new Float32Array(16);
+        whaleI[1] = 1; whaleI[2] = 0.7; whaleI[3] = 0.15; whaleI[4] = 0.1;
+        whaleI[5] = 0.05;
         animalPeriodicWaves.whale = audioCtx.createPeriodicWave(whaleR, whaleI);
+    }
+
+    // =======================================================
+    // ANIMAL VOICE CHAINS (formant filters + LFOs per animal)
+    // =======================================================
+
+    function buildAnimalChain(wave, osc) {
+        if (wave === 'cat') {
+            // Two vocal formant bandpass filters: ~750 Hz (F1) and ~1500 Hz (F2)
+            const input = audioCtx.createGain();
+            const f1 = audioCtx.createBiquadFilter();
+            f1.type = 'bandpass'; f1.frequency.value = 750; f1.Q.value = 5;
+            const f2 = audioCtx.createBiquadFilter();
+            f2.type = 'bandpass'; f2.frequency.value = 1500; f2.Q.value = 8;
+            const merger = audioCtx.createGain();
+            merger.gain.value = 0.6;
+            input.connect(f1); input.connect(f2);
+            f1.connect(merger); f2.connect(merger);
+            return { input, output: merger, nodes: [input, f1, f2, merger], f1, f2 };
+        }
+        if (wave === 'dog') {
+            // Bandpass resonance + lowpass + slow AM tremolo (~growl)
+            const input = audioCtx.createGain();
+            const bpf = audioCtx.createBiquadFilter();
+            bpf.type = 'bandpass'; bpf.frequency.value = 480; bpf.Q.value = 3;
+            const lpf = audioCtx.createBiquadFilter();
+            lpf.type = 'lowpass'; lpf.frequency.value = 2200;
+            const amCarrier = audioCtx.createGain();
+            amCarrier.gain.value = 0.72;
+            const amOsc = audioCtx.createOscillator();
+            amOsc.type = 'sine'; amOsc.frequency.value = 7;
+            const amDepth = audioCtx.createGain();
+            amDepth.gain.value = 0.28; // carrier 0.72 ± 0.28 → range [0.44, 1.0]
+            amOsc.connect(amDepth); amDepth.connect(amCarrier.gain);
+            input.connect(bpf); bpf.connect(lpf); lpf.connect(amCarrier);
+            amOsc.start();
+            return { input, output: amCarrier, nodes: [input, bpf, lpf, amCarrier, amOsc, amDepth] };
+        }
+        if (wave === 'bird') {
+            // Highpass to brighten + fast FM flutter
+            const input = audioCtx.createGain();
+            const hpf = audioCtx.createBiquadFilter();
+            hpf.type = 'highpass'; hpf.frequency.value = 800; hpf.Q.value = 1;
+            const fmOsc = audioCtx.createOscillator();
+            fmOsc.type = 'sine'; fmOsc.frequency.value = 18;
+            const fmGain = audioCtx.createGain();
+            fmGain.gain.value = 0; // set per-frame: freq * 0.025
+            fmOsc.connect(fmGain); fmGain.connect(osc.frequency);
+            input.connect(hpf);
+            fmOsc.start();
+            return { input, output: hpf, nodes: [input, hpf, fmOsc, fmGain], fmGain };
+        }
+        if (wave === 'whale') {
+            // Lowpass + slow AM pulse (whale song pulsation)
+            const input = audioCtx.createGain();
+            const lpf = audioCtx.createBiquadFilter();
+            lpf.type = 'lowpass'; lpf.frequency.value = 1200; lpf.Q.value = 1;
+            const amCarrier = audioCtx.createGain();
+            amCarrier.gain.value = 0.6;
+            const amOsc = audioCtx.createOscillator();
+            amOsc.type = 'sine'; amOsc.frequency.value = 0.5;
+            const amDepth = audioCtx.createGain();
+            amDepth.gain.value = 0.4;
+            amOsc.connect(amDepth); amDepth.connect(amCarrier.gain);
+            input.connect(lpf); lpf.connect(amCarrier);
+            amOsc.start();
+            return { input, output: amCarrier, nodes: [input, lpf, amCarrier, amOsc, amDepth] };
+        }
+        return null;
     }
 
     // =======================================================
@@ -474,10 +516,14 @@
 
     function applyWaveformToOsc(osc, wave) {
         if (!osc) return;
-        if (ANIMAL_WAVES.includes(wave) && animalPeriodicWaves[wave]) {
-            osc.setPeriodicWave(animalPeriodicWaves[wave]);
+        if (ANIMAL_WAVES.includes(wave)) {
+            const baseType = ANIMAL_OSC_TYPES[wave];
+            if (baseType) {
+                osc.type = baseType;
+            } else if (animalPeriodicWaves[wave]) {
+                osc.setPeriodicWave(animalPeriodicWaves[wave]);
+            }
         } else {
-            // Standard waveforms: sine, triangle, sawtooth, square
             try { osc.type = wave; } catch (e) { osc.type = 'sine'; }
         }
     }
@@ -528,8 +574,27 @@
             osc.frequency.value = 440;
             vibOsc.connect(vibGain);
             vibGain.connect(osc.frequency);
-            osc.connect(gain);
+
+            const animalChain = ANIMAL_WAVES.includes(currentWaveform)
+                ? buildAnimalChain(currentWaveform, osc) : null;
+
+            if (animalChain) {
+                osc.connect(animalChain.input);
+                animalChain.output.connect(gain);
+            } else {
+                osc.connect(gain);
+            }
             osc.start();
+
+            const glowEl = document.createElement('div');
+            glowEl.className = 'touch-glow';
+            $('glow-container').appendChild(glowEl);
+
+            const voice = { pointerId, osc, srcNode: null, gain, vibOsc, vibGain, animalChain, glowEl, freq: 440, vol: 0, x: 0, y: 0 };
+            voices.set(pointerId, voice);
+
+            gain.connect(effectsInput);
+            return voice;
         }
 
         gain.connect(effectsInput);
@@ -539,7 +604,7 @@
         glowEl.className = 'touch-glow';
         $('glow-container').appendChild(glowEl);
 
-        const voice = { pointerId, osc, srcNode, gain, vibOsc, vibGain, glowEl, freq: 440, vol: 0, x: 0, y: 0 };
+        const voice = { pointerId, osc, srcNode, gain, vibOsc, vibGain, animalChain: null, glowEl, freq: 440, vol: 0, x: 0, y: 0 };
         voices.set(pointerId, voice);
         return voice;
     }
@@ -554,6 +619,11 @@
         setTimeout(() => {
             if (v.osc) { try { v.osc.stop(); v.osc.disconnect(); } catch (_) {} }
             if (v.srcNode) { try { v.srcNode.stop(); v.srcNode.disconnect(); } catch (_) {} }
+            if (v.animalChain) {
+                for (const node of v.animalChain.nodes) {
+                    try { if (typeof node.stop === 'function') node.stop(); node.disconnect(); } catch (_) {}
+                }
+            }
             try { v.vibOsc.stop(); v.vibOsc.disconnect(); v.vibGain.disconnect(); } catch (_) {}
             try { v.gain.disconnect(); } catch (_) {}
             if (v.glowEl && v.glowEl.parentNode) v.glowEl.parentNode.removeChild(v.glowEl);
@@ -583,6 +653,17 @@
             voice.osc.frequency.linearRampToValueAtTime(freq, now + portSec);
             const depth = parseFloat($('vibrato-depth').value);
             voice.vibGain.gain.setValueAtTime(depth > 0 ? freq * (depth / 100) * 0.05 : 0, now);
+            if (voice.animalChain) {
+                const chain = voice.animalChain;
+                if (chain.f1) { // cat: scale formants with pitch
+                    const ratio = freq / 220;
+                    chain.f1.frequency.setValueAtTime(750 * ratio, now);
+                    chain.f2.frequency.setValueAtTime(1500 * ratio, now);
+                }
+                if (chain.fmGain) { // bird: FM depth proportional to freq
+                    chain.fmGain.gain.setValueAtTime(freq * 0.025, now);
+                }
+            }
         }
 
         const gainScale = voice.srcNode ? 1.0 : 0.4;
@@ -1538,7 +1619,7 @@
     // =======================================================
 
     function init() {
-        $('build-info').textContent = BUILD_INFO !== '2026-03-21 00:24 UTC (8508086)' ? BUILD_INFO : 'dev';
+        if ($('build-info').textContent === '__BUILD_INFO__') $('build-info').textContent = 'dev';
         vizCanvas = $('viz-canvas');
         vizCtx = vizCanvas.getContext('2d');
         particleCanvas = $('particle-canvas');
