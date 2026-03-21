@@ -74,6 +74,10 @@
     const ANIMAL_WAVES = ['cat', 'dog', 'bird', 'whale'];
     // Base oscillator type per animal; null = use PeriodicWave
     const ANIMAL_OSC_TYPES = { cat: 'triangle', dog: 'sawtooth', bird: 'sine', whale: null };
+    // Approximate fundamental pitch of each real audio sample (Hz)
+    const ANIMAL_SAMPLE_BASE_FREQS = { cat: 440, dog: 280, bird: 800, whale: 180 };
+    // Loop end for samples that should only loop a portion (whale is 30s)
+    const ANIMAL_SAMPLE_LOOP_END = { whale: 4.0 };
 
     // ---- State ----
     let audioCtx = null;
@@ -87,6 +91,7 @@
     let particleAmount = 60;
     let showGrid = false;
     let animalPeriodicWaves = {};
+    let animalSampleBuffers = {}; // Real audio samples, loaded at startup
     let micSampleBuffer = null; // Raw AudioBuffer for sample playback
     let micSampleBaseFreq = 261.63; // Fixed C4 reference — playbackRate = targetHz / 261.63
     let micRecorder = null;
@@ -248,6 +253,7 @@
         analyser.connect(destNode);
 
         buildAnimalWaves();
+        loadAnimalSamples(); // non-blocking, samples ready before user selects them
         updateDistortionCurve(0);
     }
 
@@ -295,8 +301,20 @@
         animalPeriodicWaves.whale = audioCtx.createPeriodicWave(whaleR, whaleI);
     }
 
+    async function loadAnimalSamples() {
+        const files = { cat: 'audio/cat.mp3', dog: 'audio/dog.mp3', bird: 'audio/bird.ogg', whale: 'audio/whale.ogg' };
+        await Promise.all(Object.entries(files).map(async ([name, path]) => {
+            try {
+                const resp = await fetch(path);
+                if (!resp.ok) return;
+                const arrayBuf = await resp.arrayBuffer();
+                animalSampleBuffers[name] = await audioCtx.decodeAudioData(arrayBuf);
+            } catch (_) {}
+        }));
+    }
+
     // =======================================================
-    // ANIMAL VOICE CHAINS (formant filters + LFOs per animal)
+    // ANIMAL VOICE CHAINS (formant filters + LFOs per animal — fallback if samples not loaded)
     // =======================================================
 
     function buildAnimalChain(wave, osc) {
@@ -556,13 +574,18 @@
 
         let osc = null, srcNode = null;
 
-        if (currentWaveform === 'sample' && micSampleBuffer) {
-            // Sample-based voice: loop the full buffer, pitch via playbackRate
+        const animalBuf = ANIMAL_WAVES.includes(currentWaveform) ? animalSampleBuffers[currentWaveform] : null;
+        const sampleBuf = currentWaveform === 'sample' ? micSampleBuffer : animalBuf;
+
+        if (sampleBuf) {
+            // Sample-based voice: loop buffer, pitch via playbackRate
             srcNode = audioCtx.createBufferSource();
-            srcNode.buffer = micSampleBuffer;
+            srcNode.buffer = sampleBuf;
             srcNode.loop = true;
+            if (animalBuf && ANIMAL_SAMPLE_LOOP_END[currentWaveform]) {
+                srcNode.loopEnd = Math.min(sampleBuf.duration, ANIMAL_SAMPLE_LOOP_END[currentWaveform]);
+            }
             srcNode.playbackRate.value = 1;
-            // Vibrato modulates playbackRate
             vibOsc.connect(vibGain);
             vibGain.connect(srcNode.playbackRate);
             srcNode.connect(gain);
@@ -645,7 +668,8 @@
 
         if (voice.srcNode) {
             // Sample voice: control pitch via playbackRate
-            const rate = freq / micSampleBaseFreq;
+            const baseFreq = ANIMAL_SAMPLE_BASE_FREQS[currentWaveform] || micSampleBaseFreq;
+            const rate = freq / baseFreq;
             voice.srcNode.playbackRate.linearRampToValueAtTime(rate, now + portSec);
             const depth = parseFloat($('vibrato-depth').value);
             voice.vibGain.gain.setValueAtTime(depth > 0 ? rate * (depth / 100) * 0.05 : 0, now);
