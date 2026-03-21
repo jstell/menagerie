@@ -6,7 +6,7 @@
 (() => {
     'use strict';
 
-    const BUILD_INFO = '2026-03-21 00:00 UTC (2e7e237)';
+    const BUILD_INFO = '2026-03-21 00:03 UTC (9b347b3)';
 
     // ---- Constants ----
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -326,6 +326,27 @@
     // MIC SAMPLING
     // =======================================================
 
+    function normalizeBuffer(audioBuf, target = 0.9) {
+        const numCh = audioBuf.numberOfChannels;
+        let peak = 0;
+        for (let ch = 0; ch < numCh; ch++) {
+            const data = audioBuf.getChannelData(ch);
+            for (let i = 0; i < data.length; i++) {
+                const abs = Math.abs(data[i]);
+                if (abs > peak) peak = abs;
+            }
+        }
+        if (peak === 0 || peak >= target) return audioBuf;
+        const gain = target / peak;
+        const out = audioCtx.createBuffer(numCh, audioBuf.length, audioBuf.sampleRate);
+        for (let ch = 0; ch < numCh; ch++) {
+            const src = audioBuf.getChannelData(ch);
+            const dst = out.getChannelData(ch);
+            for (let i = 0; i < src.length; i++) dst[i] = src[i] * gain;
+        }
+        return out;
+    }
+
     function trimSilence(audioBuf, threshold = 0.015) {
         const sr = audioBuf.sampleRate;
         const numCh = audioBuf.numberOfChannels;
@@ -391,7 +412,7 @@
                 const blob = new Blob(chunks, { type: mimeType || 'audio/webm' });
                 const arrayBuf = await blob.arrayBuffer();
                 const decoded = await audioCtx.decodeAudioData(arrayBuf);
-                micSampleBuffer = trimSilence(decoded);
+                micSampleBuffer = normalizeBuffer(trimSilence(decoded));
                 // Fixed C4 as base — playbackRate = targetHz / 261.63
                 micSampleBaseFreq = 261.63;
 
