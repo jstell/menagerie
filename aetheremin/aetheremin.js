@@ -79,7 +79,7 @@
     // Loop end for samples that should only loop a portion (whale is 30s)
     const ANIMAL_SAMPLE_LOOP_END = { whale: 4.0 };
     // Start offset (seconds) to skip leading silence in samples
-    const ANIMAL_SAMPLE_START_OFFSET = { bird: 1.5 };
+    const ANIMAL_SAMPLE_START_OFFSET = { bird: 3.5 };
 
     // ---- State ----
     let audioCtx = null;
