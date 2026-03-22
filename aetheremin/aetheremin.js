@@ -78,6 +78,8 @@
     const ANIMAL_SAMPLE_BASE_FREQS = { cat: 440, dog: 280, bird: 800, whale: 180 };
     // Loop end for samples that should only loop a portion (whale is 30s)
     const ANIMAL_SAMPLE_LOOP_END = { whale: 4.0 };
+    // Start offset (seconds) to skip leading silence in samples
+    const ANIMAL_SAMPLE_START_OFFSET = { bird: 1.5 };
 
     // ---- State ----
     let audioCtx = null;
@@ -582,6 +584,9 @@
             srcNode = audioCtx.createBufferSource();
             srcNode.buffer = sampleBuf;
             srcNode.loop = true;
+            if (animalBuf && ANIMAL_SAMPLE_START_OFFSET[currentWaveform]) {
+                srcNode.loopStart = ANIMAL_SAMPLE_START_OFFSET[currentWaveform];
+            }
             if (animalBuf && ANIMAL_SAMPLE_LOOP_END[currentWaveform]) {
                 srcNode.loopEnd = Math.min(sampleBuf.duration, ANIMAL_SAMPLE_LOOP_END[currentWaveform]);
             }
@@ -589,7 +594,8 @@
             vibOsc.connect(vibGain);
             vibGain.connect(srcNode.playbackRate);
             srcNode.connect(gain);
-            srcNode.start();
+            const startOffset = (animalBuf && ANIMAL_SAMPLE_START_OFFSET[currentWaveform]) || 0;
+            srcNode.start(0, startOffset);
         } else {
             // Oscillator-based voice
             osc = audioCtx.createOscillator();
