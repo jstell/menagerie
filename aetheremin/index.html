@@ -18,7 +18,8 @@
                     <p>Mouse, touch, or multi-touch to play</p>
                 </div>
                 <button id="start-btn">Touch to Begin</button>
-                <div id="build-info">2026-03-29 22:25 UTC (eef0a53)</div>
+                <button id="kids-start-btn">&#127926; Kids Mode</button>
+                <div id="build-info">2026-03-29 22:48 UTC (532953e)</div>
             </div>
         </div>
 
@@ -306,8 +307,53 @@
                 </div>
             </div>
         </div>
+
+        <!-- Kids Mode Toolbar -->
+        <div id="kids-toolbar">
+            <div class="kids-row kids-sounds-row">
+                <button class="kids-btn kids-sound-btn" data-wave="cat">&#128049;<span>Cat</span></button>
+                <button class="kids-btn kids-sound-btn" data-wave="dog">&#128054;<span>Dog</span></button>
+                <button class="kids-btn kids-sound-btn" data-wave="bird">&#128038;<span>Bird</span></button>
+                <button class="kids-btn kids-sound-btn" data-wave="whale">&#128011;<span>Whale</span></button>
+                <div class="kids-sep"></div>
+                <button class="kids-btn kids-preset-btn" data-preset="classic">&#11088;<span>Classic</span></button>
+                <button class="kids-btn kids-preset-btn" data-preset="spooky">&#128123;<span>Spooky</span></button>
+                <button class="kids-btn kids-preset-btn" data-preset="ambient">&#127769;<span>Calm</span></button>
+                <button class="kids-btn kids-preset-btn" data-preset="sci-fi">&#128640;<span>Sci-Fi</span></button>
+                <button class="kids-btn kids-preset-btn" data-preset="underwater">&#128032;<span>Ocean</span></button>
+                <button class="kids-btn kids-preset-btn" data-preset="cat-chorus">&#128568;<span>Cats!</span></button>
+                <button class="kids-btn kids-preset-btn" data-preset="whale-song">&#128011;<span>Whales</span></button>
+                <div class="kids-sep"></div>
+                <button class="kids-btn" id="kids-mic-btn">&#127908;<span>Sample</span></button>
+            </div>
+            <div class="kids-row kids-fx-row">
+                <div class="kids-fx-ctrl">
+                    <label class="kids-fx-label">Echo &#128257;</label>
+                    <input type="range" id="kids-echo" min="0" max="100" value="0">
+                </div>
+                <div class="kids-fx-ctrl">
+                    <label class="kids-fx-label">Space &#127756;</label>
+                    <input type="range" id="kids-space" min="0" max="100" value="20">
+                </div>
+                <div class="kids-fx-ctrl">
+                    <label class="kids-fx-label">Wobble &#12316;</label>
+                    <input type="range" id="kids-wobble" min="0" max="100" value="0">
+                </div>
+                <div class="kids-fx-ctrl">
+                    <label class="kids-fx-label">Shimmer &#10024;</label>
+                    <input type="range" id="kids-shimmer" min="0" max="100" value="0">
+                </div>
+                <div class="kids-sep"></div>
+                <div class="kids-themes">
+                    <button class="kids-theme-btn" data-ktheme="rainbow" title="Rainbow &#127752;" style="background: conic-gradient(#ff0080, #ffaa00, #00ff88, #00aaff, #ff0080);"></button>
+                    <button class="kids-theme-btn" data-ktheme="candy" title="Candy &#127853;" style="background: linear-gradient(135deg, #ff2d75, #00ffaa);"></button>
+                    <button class="kids-theme-btn" data-ktheme="space" title="Space &#128640;" style="background: linear-gradient(135deg, #6600ff, #0066ff);"></button>
+                    <button class="kids-theme-btn" data-ktheme="jungle" title="Jungle &#127807;" style="background: linear-gradient(135deg, #44dd00, #ffcc00);"></button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="aetheremin.js?v=eef0a53"></script>
+    <script src="aetheremin.js?v=532953e"></script>
 </body>
 </html>

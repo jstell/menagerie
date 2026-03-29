@@ -1202,3 +1202,293 @@ body.theme-cosmic {
     --theme-glow: rgba(123, 47, 247, 0.4);
     --theme-particle: #9d5cff;
 }
+
+/* ============================
+   Kids Mode — Start Button
+   ============================ */
+
+#kids-start-btn {
+    background: linear-gradient(135deg, #ff0080, #ff8c00, #40e0d0, #ff0080);
+    background-size: 300% 300%;
+    animation: kidsStartGrad 3s ease infinite, kidsBounce 2s ease-in-out infinite;
+    border: none;
+    color: white;
+    padding: 1.1rem 2.5rem;
+    font-size: 1.3rem;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    box-shadow: 0 0 30px rgba(255, 0, 128, 0.5);
+    margin-top: 1rem;
+    display: block;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#kids-start-btn:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 0 50px rgba(255, 0, 128, 0.7);
+}
+
+@keyframes kidsStartGrad {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes kidsBounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%       { transform: translateY(-7px) scale(1.03); }
+}
+
+/* ============================
+   Kids Mode — Layout
+   ============================ */
+
+#kids-toolbar {
+    display: none;
+}
+
+body.kids-mode #controls-panel {
+    display: none;
+}
+
+body.kids-mode #kids-toolbar {
+    display: flex;
+    flex-direction: column;
+    background: rgba(8, 8, 18, 0.96);
+    border-top: 2px solid var(--theme-primary);
+    box-shadow: 0 -4px 24px var(--theme-glow);
+    z-index: 10;
+    padding: 6px 10px 8px;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+body.kids-mode .note-display,
+body.kids-mode .freq-display {
+    display: none;
+}
+
+/* Animated glow orb drifting around the play area */
+body.kids-mode #play-area::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    animation: kidsGlowMove 5s ease-in-out infinite;
+}
+
+@keyframes kidsGlowMove {
+    0%   { background: radial-gradient(ellipse at 20% 30%, var(--theme-glow) 0%, transparent 52%); }
+    33%  { background: radial-gradient(ellipse at 78% 18%, var(--theme-glow) 0%, transparent 52%); }
+    66%  { background: radial-gradient(ellipse at 55% 82%, var(--theme-glow) 0%, transparent 52%); }
+    100% { background: radial-gradient(ellipse at 20% 30%, var(--theme-glow) 0%, transparent 52%); }
+}
+
+/* Bigger, more dramatic glows in kids mode */
+body.kids-mode .touch-glow {
+    width: 120px !important;
+    height: 120px !important;
+    box-shadow: 0 0 70px var(--theme-glow), 0 0 140px var(--theme-glow) !important;
+}
+
+/* ============================
+   Kids Toolbar — Rows
+   ============================ */
+
+.kids-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.kids-row::-webkit-scrollbar {
+    display: none;
+}
+
+.kids-sep {
+    flex-shrink: 0;
+    width: 1px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 0 3px;
+}
+
+/* ============================
+   Kids Sound & Preset Buttons
+   ============================ */
+
+.kids-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 58px;
+    height: 62px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: white;
+    cursor: pointer;
+    font-size: 24px;
+    transition: all 0.15s ease;
+    padding: 4px 8px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    line-height: 1;
+}
+
+.kids-btn span {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1;
+}
+
+.kids-btn:active {
+    transform: scale(0.91);
+}
+
+.kids-btn:hover {
+    background: rgba(255, 255, 255, 0.11);
+    border-color: var(--theme-primary);
+    transform: scale(1.06);
+}
+
+.kids-btn.active {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: var(--theme-secondary);
+    box-shadow: 0 0 16px var(--theme-glow), inset 0 0 8px rgba(255,255,255,0.04);
+}
+
+.kids-btn.active span {
+    color: var(--theme-secondary);
+}
+
+.kids-btn.sampling {
+    background: rgba(255, 45, 117, 0.2);
+    border-color: var(--accent3);
+    animation: recPulse 1s ease-in-out infinite;
+}
+
+/* ============================
+   Kids FX Controls
+   ============================ */
+
+.kids-fx-row {
+    padding-bottom: 2px;
+}
+
+.kids-fx-ctrl {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 80px;
+    flex: 1;
+    max-width: 140px;
+}
+
+.kids-fx-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.75);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    cursor: default;
+    user-select: none;
+}
+
+/* Larger slider thumb in kids mode */
+body.kids-mode input[type="range"] {
+    height: 6px;
+}
+
+body.kids-mode input[type="range"]::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    box-shadow: 0 0 10px var(--theme-primary);
+}
+
+body.kids-mode input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    box-shadow: 0 0 10px var(--theme-primary);
+}
+
+/* ============================
+   Kids Theme Picker
+   ============================ */
+
+.kids-themes {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0 4px;
+}
+
+.kids-theme-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.kids-theme-btn:hover {
+    transform: scale(1.15);
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+.kids-theme-btn.active {
+    border-color: white;
+    box-shadow: 0 0 14px rgba(255,255,255,0.8), 0 0 4px white;
+    transform: scale(1.12);
+}
+
+/* ============================
+   Kids Themes (CSS vars + colors)
+   ============================ */
+
+body.kids-theme-rainbow {
+    --theme-primary: #ff3399;
+    --theme-secondary: #33ffcc;
+    --theme-glow: rgba(255, 51, 153, 0.5);
+    --theme-particle: #ff66bb;
+}
+
+body.kids-theme-candy {
+    --theme-primary: #ff2d75;
+    --theme-secondary: #00ffaa;
+    --theme-glow: rgba(255, 45, 117, 0.5);
+    --theme-particle: #ff6ba8;
+}
+
+body.kids-theme-space {
+    --theme-primary: #6600ff;
+    --theme-secondary: #0088ff;
+    --theme-glow: rgba(102, 0, 255, 0.5);
+    --theme-particle: #9944ff;
+}
+
+body.kids-theme-jungle {
+    --theme-primary: #44dd00;
+    --theme-secondary: #ffcc00;
+    --theme-glow: rgba(68, 221, 0, 0.5);
+    --theme-particle: #88ff33;
+}

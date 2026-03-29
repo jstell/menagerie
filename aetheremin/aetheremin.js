@@ -64,11 +64,16 @@
     };
 
     const THEME_COLORS = {
-        cosmic: { primary: [123, 47, 247], secondary: [0, 212, 255] },
-        neon:   { primary: [255, 45, 117], secondary: [0, 255, 136] },
-        fire:   { primary: [255, 102, 0],  secondary: [255, 204, 0] },
-        ocean:  { primary: [0, 119, 204],  secondary: [0, 204, 170] },
-        matrix: { primary: [0, 255, 0],    secondary: [68, 255, 68] }
+        cosmic:  { primary: [123, 47, 247], secondary: [0, 212, 255] },
+        neon:    { primary: [255, 45, 117], secondary: [0, 255, 136] },
+        fire:    { primary: [255, 102, 0],  secondary: [255, 204, 0] },
+        ocean:   { primary: [0, 119, 204],  secondary: [0, 204, 170] },
+        matrix:  { primary: [0, 255, 0],    secondary: [68, 255, 68] },
+        // Kids themes
+        rainbow: { primary: [255, 51, 153], secondary: [51, 255, 204] },
+        candy:   { primary: [255, 45, 117], secondary: [0, 255, 170] },
+        space:   { primary: [102, 0, 255],  secondary: [0, 136, 255] },
+        jungle:  { primary: [68, 221, 0],   secondary: [255, 204, 0] }
     };
 
     const ANIMAL_WAVES = ['cat', 'dog', 'bird', 'whale'];
@@ -92,6 +97,12 @@
     let portamentoTime = 50;
     let particleAmount = 60;
     let showGrid = false;
+
+    // Kids mode
+    let kidsMode = false;
+    let currentKidsTheme = 'rainbow';
+    let kidsRainbowHue = 0;
+
     let animalPeriodicWaves = {};
     let animalSampleBuffers = {}; // Real audio samples, loaded at startup
     let micSampleBuffer = null; // Raw AudioBuffer for sample playback
@@ -467,6 +478,10 @@
             micRecording = false;
             btn.textContent = '\uD83C\uDFA4 SAMPLE MIC';
             btn.classList.remove('sampling');
+            if (kidsMode) {
+                const kb = $('kids-mic-btn');
+                if (kb) { kb.innerHTML = '&#127908;<span>Sample</span>'; kb.classList.remove('sampling'); }
+            }
             status.textContent = 'Processing...';
             status.className = 'mic-status';
 
@@ -494,6 +509,10 @@
         micRecording = true;
         btn.textContent = '\u23F9 STOP REC';
         btn.classList.add('sampling');
+        if (kidsMode) {
+            const kb = $('kids-mic-btn');
+            if (kb) { kb.innerHTML = '&#9209;<span>Stop</span>'; kb.classList.add('sampling'); }
+        }
 
         // Auto-stop at 5 seconds, show elapsed time
         let elapsed = 0;
@@ -516,6 +535,15 @@
         src.buffer = micSampleBuffer;
         src.connect(audioCtx.destination);
         src.start();
+    }
+
+    function hslToRgb(h, s, l) {
+        const a = s * Math.min(l, 1 - l);
+        const f = n => {
+            const k = (n + h * 12) % 12;
+            return Math.round((l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)) * 255);
+        };
+        return [f(0), f(8), f(4)];
     }
 
     function addSampleWaveButton() {
@@ -553,6 +581,13 @@
         document.querySelectorAll('.wave-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.wave === wave);
         });
+        if (kidsMode) {
+            document.querySelectorAll('.kids-sound-btn').forEach(b => b.classList.remove('active'));
+            const kb = document.querySelector(`.kids-sound-btn[data-wave="${wave}"]`);
+            if (kb) kb.classList.add('active');
+            const kidsMicBtn = $('kids-mic-btn');
+            if (kidsMicBtn) kidsMicBtn.classList.toggle('active', wave === 'sample');
+        }
         for (const voice of voices.values()) {
             if (voice.osc) applyWaveformToOsc(voice.osc, wave);
             // Note: switching to/from sample mid-touch takes effect on next touch
@@ -898,6 +933,18 @@
     // =======================================================
 
     function animate() {
+        if (kidsMode && currentKidsTheme === 'rainbow') {
+            kidsRainbowHue = (kidsRainbowHue + 0.7) % 360;
+            const p = hslToRgb(kidsRainbowHue / 360, 1, 0.6);
+            const s = hslToRgb(((kidsRainbowHue + 150) % 360) / 360, 1, 0.6);
+            THEME_COLORS.rainbow.primary = p;
+            THEME_COLORS.rainbow.secondary = s;
+            const root = document.documentElement;
+            root.style.setProperty('--theme-primary', `rgb(${p.join(',')})`);
+            root.style.setProperty('--theme-secondary', `rgb(${s.join(',')})`);
+            root.style.setProperty('--theme-glow', `rgba(${p.join(',')},0.45)`);
+            root.style.setProperty('--theme-particle', `rgb(${p.join(',')})`);
+        }
         drawVisualization();
         drawParticles();
         for (const v of voices.values()) {
@@ -1535,13 +1582,102 @@
     }
 
     // =======================================================
+    // KIDS MODE CONTROLS
+    // =======================================================
+
+    function bindKidsControls() {
+        document.body.classList.add('kids-mode');
+
+        // Play area — same pointer handling as normal mode
+        const pa = $('play-area');
+        pa.style.touchAction = 'none';
+        pa.addEventListener('pointerdown', onPointerDown);
+        pa.addEventListener('pointermove', onPointerMove);
+        pa.addEventListener('pointerup', onPointerUp);
+        pa.addEventListener('pointercancel', onPointerUp);
+        pa.addEventListener('pointerleave', onPointerUp);
+
+        // Animal sound buttons
+        document.querySelectorAll('.kids-sound-btn').forEach(btn => {
+            btn.addEventListener('click', () => selectWaveform(btn.dataset.wave));
+        });
+
+        // Preset buttons
+        document.querySelectorAll('.kids-preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+        });
+
+        // Mic sample button
+        $('kids-mic-btn').addEventListener('click', () => {
+            if (micRecording) stopMicSample();
+            else startMicSample();
+        });
+
+        // Effect sliders
+        $('kids-echo').addEventListener('input', e => {
+            const v = e.target.value / 100;
+            delayGain.gain.setValueAtTime(v, audioCtx.currentTime);
+            $('delay-mix').value = e.target.value;
+            $('delay-val').textContent = e.target.value + '%';
+        });
+        $('kids-space').addEventListener('input', e => {
+            const v = e.target.value / 100;
+            reverbGain.gain.setValueAtTime(v, audioCtx.currentTime);
+            dryGain.gain.setValueAtTime(1 - v * 0.5, audioCtx.currentTime);
+            $('reverb-mix').value = e.target.value;
+            $('reverb-val').textContent = e.target.value + '%';
+        });
+        $('kids-wobble').addEventListener('input', e => {
+            $('vibrato-depth').value = e.target.value;
+            $('vibrato-val').textContent = e.target.value + '%';
+        });
+        $('kids-shimmer').addEventListener('input', e => {
+            const v = e.target.value / 100;
+            chorusMixGain.gain.setValueAtTime(v, audioCtx.currentTime);
+            chorusDryGain.gain.setValueAtTime(1 - v * 0.3, audioCtx.currentTime);
+            $('chorus-mix').value = e.target.value;
+            $('chorus-val').textContent = e.target.value + '%';
+        });
+
+        // Theme picker
+        document.querySelectorAll('.kids-theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => setKidsTheme(btn.dataset.ktheme));
+        });
+
+        // Boost particles and start on cat
+        particleAmount = 90;
+        selectWaveform('cat');
+
+        window.addEventListener('resize', resizeCanvases);
+    }
+
+    function setKidsTheme(ktheme) {
+        currentKidsTheme = ktheme;
+        currentTheme = ktheme;
+        [...document.body.classList].filter(c => c.startsWith('kids-theme-')).forEach(c => document.body.classList.remove(c));
+        document.body.classList.add('kids-theme-' + ktheme);
+        document.querySelectorAll('.kids-theme-btn').forEach(b =>
+            b.classList.toggle('active', b.dataset.ktheme === ktheme)
+        );
+        // For non-rainbow themes, push colors into CSS vars immediately
+        if (ktheme !== 'rainbow') {
+            const c = THEME_COLORS[ktheme];
+            const root = document.documentElement;
+            root.style.setProperty('--theme-primary', `rgb(${c.primary.join(',')})`);
+            root.style.setProperty('--theme-secondary', `rgb(${c.secondary.join(',')})`);
+            root.style.setProperty('--theme-glow', `rgba(${c.primary.join(',')},0.45)`);
+            root.style.setProperty('--theme-particle', `rgb(${c.primary.join(',')})`);
+        }
+    }
+
+    // =======================================================
     // THEME & PRESETS
     // =======================================================
 
     function setTheme(theme) {
         currentTheme = theme;
-        const isLight = document.body.classList.contains('light-mode');
-        document.body.className = 'theme-' + theme + (isLight ? ' light-mode' : '');
+        [...document.body.classList].filter(c => c.startsWith('theme-')).forEach(c => document.body.classList.remove(c));
+        document.body.classList.add('theme-' + theme);
         $('theme-select').value = theme;
     }
 
@@ -1595,7 +1731,13 @@
         $('scale-select').value = p.scale;
         currentScale = p.scale;
 
-        setTheme(p.theme);
+        if (!kidsMode) setTheme(p.theme);
+        if (kidsMode) {
+            $('kids-echo').value = p.delayMix;
+            $('kids-space').value = p.reverbMix;
+            $('kids-wobble').value = p.vibratoDepth;
+            $('kids-shimmer').value = p.chorusMix;
+        }
     }
 
     // =======================================================
@@ -1661,6 +1803,16 @@
             bindKeyboard();
             setTheme('cosmic');
             setLightMode(localStorage.getItem('aetheremin-light-mode') === '1');
+            animate();
+        });
+
+        $('kids-start-btn').addEventListener('click', () => {
+            kidsMode = true;
+            initAudio();
+            $('start-screen').classList.add('hidden');
+            buildFreqGuides();
+            bindKidsControls();
+            setKidsTheme('rainbow');
             animate();
         });
     }
