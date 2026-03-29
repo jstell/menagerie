@@ -1453,6 +1453,7 @@
         pa.addEventListener('pointerup', onPointerUp);
         pa.addEventListener('pointercancel', onPointerUp);
         pa.addEventListener('pointerleave', onPointerUp);
+        pa.addEventListener('contextmenu', e => e.preventDefault());
 
         // Waveform buttons (standard + animal)
         document.querySelectorAll('#waveform-buttons .wave-btn, #animal-buttons .wave-btn').forEach(btn => {
@@ -1596,6 +1597,7 @@
         pa.addEventListener('pointerup', onPointerUp);
         pa.addEventListener('pointercancel', onPointerUp);
         pa.addEventListener('pointerleave', onPointerUp);
+        pa.addEventListener('contextmenu', e => e.preventDefault());
 
         // Animal sound buttons
         document.querySelectorAll('.kids-sound-btn').forEach(btn => {

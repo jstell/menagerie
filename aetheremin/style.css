@@ -215,6 +215,9 @@ html, body {
     overflow: hidden;
     cursor: none;
     background: radial-gradient(ellipse at 50% 50%, #16162a 0%, var(--bg-dark) 100%);
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 #viz-canvas, #particle-canvas {
