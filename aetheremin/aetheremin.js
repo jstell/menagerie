@@ -495,14 +495,14 @@
         btn.textContent = '\u23F9 STOP REC';
         btn.classList.add('sampling');
 
-        // Auto-stop at 15 seconds, show elapsed time
+        // Auto-stop at 5 seconds, show elapsed time
         let elapsed = 0;
         status.textContent = 'Recording 0s...';
         status.className = 'mic-status sampling';
         micRecTimerInterval = setInterval(() => {
             elapsed++;
             status.textContent = `Recording ${elapsed}s...`;
-            if (elapsed >= 15) stopMicSample();
+            if (elapsed >= 5) stopMicSample();
         }, 1000);
     }
 
@@ -1522,15 +1522,12 @@
         $('loop-stop-btn').addEventListener('click', () => { stopLoopRecording(); stopLoopPlayback(); });
         $('loop-clear-btn').addEventListener('click', clearLoopTracks);
 
-        // Mic sample — hold to record, release to stop
+        // Mic sample — click/tap to start, click/tap again to stop
         const micBtn = $('mic-sample-btn');
-        micBtn.addEventListener('pointerdown', e => {
-            e.preventDefault();
-            micBtn.setPointerCapture(e.pointerId); // keep events on this element even if touch drifts
-            startMicSample();
+        micBtn.addEventListener('click', () => {
+            if (micRecording) stopMicSample();
+            else startMicSample();
         });
-        micBtn.addEventListener('pointerup', () => stopMicSample());
-        micBtn.addEventListener('pointercancel', () => stopMicSample());
         $('mic-preview-btn').addEventListener('click', playMicPreview);
 
         // Resize
