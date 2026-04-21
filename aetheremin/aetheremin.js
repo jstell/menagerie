@@ -515,6 +515,7 @@
         }
 
         // Auto-stop at 5 seconds, show elapsed time
+        clearInterval(micRecTimerInterval);
         let elapsed = 0;
         status.textContent = 'Recording 0s...';
         status.className = 'mic-status sampling';
@@ -526,7 +527,20 @@
     }
 
     function stopMicSample() {
-        if (micRecorder && micRecording) micRecorder.stop();
+        clearInterval(micRecTimerInterval);
+        micRecTimerInterval = null;
+        if (!micRecorder || !micRecording) return;
+        micRecording = false;
+        micRecorder.stop();
+        const btn = $('mic-sample-btn');
+        btn.textContent = '🎤 SAMPLE MIC';
+        btn.classList.remove('sampling');
+        if (kidsMode) {
+            const kb = $('kids-mic-btn');
+            if (kb) { kb.innerHTML = '&#127908;<span>Sample</span>'; kb.classList.remove('sampling'); }
+        }
+        $('mic-status').textContent = 'Processing...';
+        $('mic-status').className = 'mic-status';
     }
 
     function playMicPreview() {
