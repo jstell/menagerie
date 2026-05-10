@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shape Explorer — Area &amp; Perimeter Practice</title>
+<style>
+:root {
+  --bg:        #0d0d1f;
+  --surface:   #161630;
+  --surface2:  #1e1e40;
+  --border:    #2a2a5a;
+  --primary:   #7c6fff;
+  --accent:    #ff6b6b;
+  --teal:      #4ecdc4;
+  --gold:      #ffe66d;
+  --green:     #51cf66;
+  --text:      #e8e8ff;
+  --muted:     #8888aa;
+  --radius:    12px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── HEADER ─────────────────────────────────────────── */
+header {
+  background: linear-gradient(135deg, #1a1050 0%, #2a1070 50%, #1a1050 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 24px rgba(124,111,255,0.2);
+}
+
+.header-left { display: flex; align-items: center; gap: 12px; }
+
+.logo {
+  font-size: 2rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+.title-block h1 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #a78bfa, #4ecdc4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.title-block .subtitle {
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.header-right { display: flex; align-items: center; gap: 16px; }
+
+.score-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+
+.score-badge .score-label { color: var(--muted); }
+.score-badge .score-value { font-weight: 700; color: var(--gold); }
+
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ─── LAYOUT ─────────────────────────────────────────── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  grid-template-rows: auto auto;
+  gap: 16px;
+  padding: 16px 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+@media (max-width: 800px) {
+  .main-layout { grid-template-columns: 1fr; }
+}
+
+/* ─── CANVAS PANEL ────────────────────────────────────── */
+.canvas-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.problem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.problem-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shape-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.mode-badge {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.mode-area    { background: rgba(124,111,255,0.2); color: var(--primary); border: 1px solid var(--primary); }
+.mode-perim   { background: rgba(78,205,196,0.2);  color: var(--teal);    border: 1px solid var(--teal);    }
+
+.difficulty-stars { font-size: 0.85rem; letter-spacing: 2px; }
+
+.question-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gold);
+  padding: 10px 14px;
+  background: rgba(255,230,109,0.07);
+  border-left: 3px solid var(--gold);
+  border-radius: 6px;
+}
+
+.canvas-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  min-height: 320px;
+  overflow: hidden;
+}
+
+canvas#shapeCanvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.canvas-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  color: var(--muted);
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.canvas-wrapper:hover .canvas-hint { opacity: 1; }
+
+/* ─── CONTROLS ────────────────────────────────────────── */
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn:hover  { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+.btn:active { transform: translateY(0); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), #5a4fd4);
+  color: #fff;
+}
+
+.btn-teal {
+  background: linear-gradient(135deg, var(--teal), #38a89d);
+  color: #fff;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #f5a623, #e8860a);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ─── SOLUTION PANEL ──────────────────────────────────── */
+.solution-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  max-height: 560px;
+}
+
+.solution-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.idle-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 12px;
+  padding: 30px;
+  text-align: center;
+}
+
+.idle-message .big-emoji { font-size: 3.5rem; animation: float 3s ease-in-out infinite; }
+.idle-message p { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+
+/* Step cards */
+.step-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  animation: slideIn 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
+  overflow: hidden;
+}
+
+.step-card.intro-card { border-color: var(--primary); }
+.step-card.part-A     { border-color: #ff6b6b; }
+.step-card.part-B     { border-color: #4ecdc4; }
+.step-card.part-C     { border-color: #ffe66d; }
+.step-card.total-card { border-color: var(--green); background: rgba(81,207,102,0.06); }
+
+.step-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.step-num.sn-intro { background: var(--primary);  color: #fff; }
+.step-num.sn-A     { background: #ff6b6b;          color: #fff; }
+.step-num.sn-B     { background: #4ecdc4;           color: #fff; }
+.step-num.sn-C     { background: #ffe66d;           color: #0d0d1f; }
+.step-num.sn-total { background: var(--green);      color: #fff; }
+
+.step-title { font-weight: 700; font-size: 0.9rem; }
+.step-body  { font-size: 0.85rem; line-height: 1.6; color: var(--muted); }
+
+.formula-pill {
+  display: inline-block;
+  background: rgba(124,111,255,0.15);
+  border: 1px solid rgba(124,111,255,0.35);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  color: #c4b5fd;
+  margin: 4px 0;
+}
+
+.calc-line {
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: var(--gold);
+}
+
+.result-num {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--green);
+}
+
+.total-display {
+  background: rgba(81,207,102,0.1);
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.total-display .total-eq { font-family: 'Courier New', monospace; font-size: 0.95rem; color: var(--gold); }
+.total-display .total-val { font-size: 1.5rem; font-weight: 800; color: var(--green); margin-top: 4px; }
+
+/* Perimeter segment strip */
+.perim-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.perim-seg {
+  background: rgba(78,205,196,0.15);
+  border: 1px solid var(--teal);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: var(--teal);
+}
+
+.perim-plus {
+  color: var(--muted);
+  align-self: center;
+  font-weight: 700;
+}
+
+/* ─── CALCULATOR ──────────────────────────────────────── */
+.calc-panel {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.calc-toggle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.calc-toggle-bar h3 { font-size: 0.95rem; font-weight: 700; color: var(--teal); display: flex; align-items: center; gap: 6px; }
+
+.calc-body { display: none; margin-top: 14px; }
+.calc-body.open { display: flex; gap: 16px; flex-wrap: wrap; }
+
+.calc-display-area { flex: 1; min-width: 200px; }
+
+.calc-display {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 1.4rem;
+  color: var(--green);
+  text-align: right;
+  min-height: 56px;
+  word-break: break-all;
+}
+
+.calc-history {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: right;
+  min-height: 18px;
+  padding: 2px 4px;
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 50px);
+  gap: 6px;
+}
+
+.calc-btn {
+  width: 50px;
+  height: 50px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.calc-btn:hover  { background: var(--border); transform: scale(1.05); }
+.calc-btn:active { transform: scale(0.96); }
+.calc-btn.op   { color: var(--primary); }
+.calc-btn.eq   { background: var(--primary); color: #fff; grid-column: span 2; width: 106px; }
+.calc-btn.clr  { color: var(--accent); }
+.calc-btn.bsp  { color: var(--gold); }
+
+/* ─── FORMULA REFERENCE ───────────────────────────────── */
+.formula-panel {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.formula-toggle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.formula-toggle-bar h3 { font-size: 0.95rem; font-weight: 700; color: var(--gold); display: flex; align-items: center; gap: 6px; }
+
+.formula-body { display: none; margin-top: 14px; }
+.formula-body.open { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+
+.formula-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.formula-card h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.formula-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+.formula-card li {
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: #c4b5fd;
+}
+
+.formula-card li span { color: var(--muted); }
+
+/* ─── TOAST ───────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  z-index: 999;
+  transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.info    { border-color: var(--primary); color: var(--primary); }
+
+/* ─── ANIMATIONS ──────────────────────────────────────── */
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+@keyframes confettiFly {
+  0%   { transform: translate(0,0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) rotate(720deg); opacity: 0; }
+}
+
+.celebration-text {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 4rem;
+  pointer-events: none;
+  animation: celebPop 1.2s ease-out forwards;
+  z-index: 9999;
+}
+
+@keyframes celebPop {
+  0%   { transform: translate(-50%,-50%) scale(0); opacity: 1; }
+  50%  { transform: translate(-50%,-60%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%,-70%) scale(1); opacity: 0; }
+}
+
+.confetti-piece {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 9998;
+  animation: confettiFly var(--dur, 1.2s) ease-out forwards;
+}
+
+/* Step progress bar */
+.step-progress {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.3s;
+}
+
+.step-dot.active { background: var(--primary); }
+.step-dot.done   { background: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─────────────────────────────────────────── -->
+<header>
+  <div class="header-left">
+    <div class="logo">📐</div>
+    <div class="title-block">
+      <h1>Shape Explorer</h1>
+      <div class="subtitle">Virginia SOL · Area &amp; Perimeter Practice</div>
+      <div style="font-size:0.6rem;color:rgba(200,200,255,0.25);margin-top:1px">2026-05-10 23:25 UTC (8f2592b)</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="score-badge">
+      <span class="score-label">Score</span>
+      <span class="score-value" id="scoreDisplay">0 / 0</span>
+    </div>
+    <div class="streak" id="streakDisplay" title="Current streak">🔥 0</div>
+  </div>
+</header>
+
+<!-- ─── MAIN LAYOUT ────────────────────────────────────── -->
+<div class="main-layout">
+
+  <!-- Canvas Panel -->
+  <div class="canvas-panel">
+    <div class="problem-header">
+      <div class="problem-label">
+        <span class="shape-name" id="shapeName">Loading...</span>
+        <span class="mode-badge" id="modeBadge">Area</span>
+      </div>
+      <div class="difficulty-stars" id="diffStars">⭐</div>
+    </div>
+
+    <div class="question-text" id="questionText">
+      Find the area of the composite shape below. All measurements are in units.
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="shapeCanvas" width="520" height="360"></canvas>
+      <div class="canvas-hint">Dimensions shown in units</div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-primary" id="btnShow" onclick="handleShowBtn()">
+        ✨ Show Me How!
+      </button>
+      <button class="btn btn-teal" id="btnNext" onclick="nextStep()" disabled>
+        Next Step →
+      </button>
+      <button class="btn btn-gold" onclick="newProblem()">
+        🎲 New Problem
+      </button>
+      <button class="btn btn-ghost" onclick="toggleMode()">
+        ⇄ Switch Mode
+      </button>
+    </div>
+
+    <!-- Step progress dots -->
+    <div class="step-progress" id="stepProgress"></div>
+  </div>
+
+  <!-- Solution Panel -->
+  <div class="solution-panel" id="solutionPanel">
+    <div class="solution-title">📋 Step-by-Step Solution</div>
+    <div class="idle-message" id="idleMsg">
+      <div class="big-emoji">🤔</div>
+      <p>See the composite shape on the left?<br>
+         Click <strong>Show Me How!</strong> to watch it get broken down step by step.</p>
+      <p style="margin-top:8px; font-size:0.8rem;">
+        💡 <em>Tip: A composite shape is just simpler shapes joined together!</em>
+      </p>
+    </div>
+    <div id="stepsContainer"></div>
+  </div>
+
+  <!-- Calculator -->
+  <div class="calc-panel">
+    <div class="calc-toggle-bar" onclick="toggleCalc()">
+      <h3>🧮 Calculator</h3>
+      <span id="calcArrow" style="color:var(--muted)">▼</span>
+    </div>
+    <div class="calc-body" id="calcBody">
+      <div class="calc-display-area">
+        <div class="calc-history" id="calcHistory"></div>
+        <div class="calc-display" id="calcDisplay">0</div>
+      </div>
+      <div>
+        <div class="calc-grid">
+          <button class="calc-btn clr" onclick="calcClear()">C</button>
+          <button class="calc-btn bsp" onclick="calcBackspace()">⌫</button>
+          <button class="calc-btn op"  onclick="calcOp('%')">%</button>
+          <button class="calc-btn op"  onclick="calcOp('÷')">÷</button>
+
+          <button class="calc-btn" onclick="calcNum('7')">7</button>
+          <button class="calc-btn" onclick="calcNum('8')">8</button>
+          <button class="calc-btn" onclick="calcNum('9')">9</button>
+          <button class="calc-btn op" onclick="calcOp('×')">×</button>
+
+          <button class="calc-btn" onclick="calcNum('4')">4</button>
+          <button class="calc-btn" onclick="calcNum('5')">5</button>
+          <button class="calc-btn" onclick="calcNum('6')">6</button>
+          <button class="calc-btn op" onclick="calcOp('-')">−</button>
+
+          <button class="calc-btn" onclick="calcNum('1')">1</button>
+          <button class="calc-btn" onclick="calcNum('2')">2</button>
+          <button class="calc-btn" onclick="calcNum('3')">3</button>
+          <button class="calc-btn op" onclick="calcOp('+')">+</button>
+
+          <button class="calc-btn" onclick="calcNum('0')" style="grid-column:span 2; width:106px">0</button>
+          <button class="calc-btn" onclick="calcNum('.')">.</button>
+          <button class="calc-btn eq" onclick="calcEquals()" style="background:var(--primary);color:#fff">=</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formula Reference -->
+  <div class="formula-panel">
+    <div class="formula-toggle-bar" onclick="toggleFormulas()">
+      <h3>📚 Formula Reference (Virginia SOL)</h3>
+      <span id="formulaArrow" style="color:var(--muted)">▼</span>
+    </div>
+    <div class="formula-body" id="formulaBody">
+      <div class="formula-card">
+        <h4 style="color:#ff6b6b">🟥 Rectangle</h4>
+        <ul>
+          <li>Area = l × w</li>
+          <li>Perimeter = 2l + 2w<span> (or 2(l+w))</span></li>
+        </ul>
+      </div>
+      <div class="formula-card">
+        <h4 style="color:#4ecdc4">🔺 Triangle</h4>
+        <ul>
+          <li>Area = ½ × b × h</li>
+          <li>Perimeter = a + b + c</li>
+        </ul>
+      </div>
+      <div class="formula-card">
+        <h4 style="color:#ffe66d">⭕ Circle</h4>
+        <ul>
+          <li>Area = π × r²</li>
+          <li>Circumference = 2π × r</li>
+        </ul>
+      </div>
+      <div class="formula-card">
+        <h4 style="color:#a78bfa">🔵 Semicircle</h4>
+        <ul>
+          <li>Area = (π × r²) ÷ 2</li>
+          <li>Arc = π × r</li>
+        </ul>
+      </div>
+      <div class="formula-card">
+        <h4 style="color:#51cf66">💡 Composite Shapes</h4>
+        <ul>
+          <li><span>Add method: </span>A + B + C</li>
+          <li><span>Sub method: </span>Whole − Cutout</li>
+          <li><span>Perimeter: </span>Sum of outer sides only</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   SHAPE DEFINITIONS
+   All measurements in grid units (1 unit ≈ 40px on canvas)
+═══════════════════════════════════════════════════════ */
+
+const SHAPES = [
+  {
+    id: 'l-shape-1',
+    name: 'L-Shape',
+    emoji: '🔷',
+    difficulty: '⭐',
+    hint: 'Split this into two rectangles using a horizontal or vertical cut!',
+    vertices: [[0,0],[6,0],[6,3],[10,3],[10,6],[0,6]],
+    bbox: {w:10, h:6},
+    // Dimension annotations: {x1,y1,x2,y2, label, dir:'up'|'down'|'left'|'right'}
+    annotations: [
+      {x1:0,y1:0,x2:6,y2:0, label:'6', dir:'up'},
+      {x1:0,y1:0,x2:0,y2:6, label:'6', dir:'left'},
+      {x1:6,y1:0,x2:6,y2:3, label:'3', dir:'right'},
+      {x1:6,y1:3,x2:10,y2:3, label:'4', dir:'up'},
+      {x1:10,y1:3,x2:10,y2:6, label:'3', dir:'right'},
+      {x1:0,y1:6,x2:10,y2:6, label:'10', dir:'down'},
+    ],
+    area: {
+      method: 'addition',
+      parts: [
+        {id:'A', color:'#ff6b6b', rect:{x:0,y:0,w:6,h:6}, label:'Rectangle A', formula:'A = l × w', dims:'6 × 6', result:36, unit:'sq units'},
+        {id:'B', color:'#4ecdc4', rect:{x:6,y:3,w:4,h:3}, label:'Rectangle B', formula:'A = l × w', dims:'4 × 3', result:12, unit:'sq units'},
+      ],
+      operation:'+', total:48, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {x1:0,y1:0,x2:6,y2:0, len:6, color:'#ff6b6b'},
+        {x1:6,y1:0,x2:6,y2:3, len:3, color:'#ffaa6b'},
+        {x1:6,y1:3,x2:10,y2:3, len:4, color:'#4ecdc4'},
+        {x1:10,y1:3,x2:10,y2:6, len:3, color:'#51cf66'},
+        {x1:10,y1:6,x2:0,y2:6, len:10, color:'#ffe66d'},
+        {x1:0,y1:6,x2:0,y2:0, len:6, color:'#a78bfa'},
+      ],
+      total:32, unit:'units'
+    }
+  },
+  {
+    id: 't-shape',
+    name: 'T-Shape',
+    emoji: '🔶',
+    difficulty: '⭐⭐',
+    hint: 'A T-shape has a top bar and a stem — two rectangles!',
+    vertices: [[0,0],[10,0],[10,3],[7,3],[7,8],[3,8],[3,3],[0,3]],
+    bbox: {w:10, h:8},
+    annotations: [
+      {x1:0,y1:0,x2:10,y2:0, label:'10', dir:'up'},
+      {x1:0,y1:0,x2:0,y2:3,  label:'3',  dir:'left'},
+      {x1:0,y1:3,x2:3,y2:3,  label:'3',  dir:'down'},
+      {x1:3,y1:3,x2:3,y2:8,  label:'5',  dir:'left'},
+      {x1:3,y1:8,x2:7,y2:8,  label:'4',  dir:'down'},
+      {x1:7,y1:3,x2:7,y2:8,  label:'5',  dir:'right'},
+      {x1:7,y1:3,x2:10,y2:3, label:'3',  dir:'down'},
+      {x1:10,y1:0,x2:10,y2:3, label:'3', dir:'right'},
+    ],
+    area: {
+      method: 'addition',
+      parts: [
+        {id:'A', color:'#a78bfa', rect:{x:0,y:0,w:10,h:3}, label:'Top Bar', formula:'A = l × w', dims:'10 × 3', result:30, unit:'sq units'},
+        {id:'B', color:'#ff6b6b', rect:{x:3,y:3,w:4,h:5},  label:'Stem',    formula:'A = l × w', dims:'4 × 5',  result:20, unit:'sq units'},
+      ],
+      operation:'+', total:50, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {x1:0,y1:0,x2:10,y2:0, len:10, color:'#a78bfa'},
+        {x1:10,y1:0,x2:10,y2:3, len:3, color:'#c4a8ff'},
+        {x1:10,y1:3,x2:7,y2:3, len:3, color:'#ff6b6b'},
+        {x1:7,y1:3,x2:7,y2:8, len:5, color:'#ff9b6b'},
+        {x1:7,y1:8,x2:3,y2:8, len:4, color:'#4ecdc4'},
+        {x1:3,y1:8,x2:3,y2:3, len:5, color:'#51cf66'},
+        {x1:3,y1:3,x2:0,y2:3, len:3, color:'#ffe66d'},
+        {x1:0,y1:3,x2:0,y2:0, len:3, color:'#ff6b6b'},
+      ],
+      total:36, unit:'units'
+    }
+  },
+  {
+    id: 'plus-shape',
+    name: 'Plus / Cross',
+    emoji: '➕',
+    difficulty: '⭐⭐',
+    hint: 'A plus sign has a horizontal bar and two arms — or think of it as three rectangles!',
+    vertices: [[3,0],[7,0],[7,3],[10,3],[10,7],[7,7],[7,10],[3,10],[3,7],[0,7],[0,3],[3,3]],
+    bbox: {w:10, h:10},
+    annotations: [
+      {x1:3,y1:0,x2:7,y2:0,   label:'4', dir:'up'},
+      {x1:7,y1:0,x2:7,y2:3,   label:'3', dir:'right'},
+      {x1:7,y1:3,x2:10,y2:3,  label:'3', dir:'up'},
+      {x1:10,y1:3,x2:10,y2:7, label:'4', dir:'right'},
+      {x1:7,y1:7,x2:10,y2:7,  label:'3', dir:'down'},
+      {x1:7,y1:7,x2:7,y2:10,  label:'3', dir:'right'},
+      {x1:3,y1:10,x2:7,y2:10, label:'4', dir:'down'},
+      {x1:3,y1:7,x2:3,y2:10,  label:'3', dir:'left'},
+      {x1:0,y1:7,x2:3,y2:7,   label:'3', dir:'down'},
+      {x1:0,y1:3,x2:0,y2:7,   label:'4', dir:'left'},
+      {x1:0,y1:3,x2:3,y2:3,   label:'3', dir:'up'},
+      {x1:3,y1:0,x2:3,y2:3,   label:'3', dir:'left'},
+    ],
+    area: {
+      method: 'addition',
+      parts: [
+        {id:'A', color:'#4ecdc4', rect:{x:0,y:3,w:10,h:4}, label:'Horizontal Bar', formula:'A = l × w', dims:'10 × 4', result:40, unit:'sq units'},
+        {id:'B', color:'#ffe66d', rect:{x:3,y:0,w:4,h:3},  label:'Top Arm',        formula:'A = l × w', dims:'4 × 3',  result:12, unit:'sq units'},
+        {id:'C', color:'#a78bfa', rect:{x:3,y:7,w:4,h:3},  label:'Bottom Arm',     formula:'A = l × w', dims:'4 × 3',  result:12, unit:'sq units'},
+      ],
+      operation:'+', total:64, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {x1:3,y1:0,x2:7,y2:0,   len:4, color:'#4ecdc4'},
+        {x1:7,y1:0,x2:7,y2:3,   len:3, color:'#6bd4cf'},
+        {x1:7,y1:3,x2:10,y2:3,  len:3, color:'#ffe66d'},
+        {x1:10,y1:3,x2:10,y2:7, len:4, color:'#ffd43b'},
+        {x1:10,y1:7,x2:7,y2:7,  len:3, color:'#a78bfa'},
+        {x1:7,y1:7,x2:7,y2:10,  len:3, color:'#c4a8ff'},
+        {x1:7,y1:10,x2:3,y2:10, len:4, color:'#ff6b6b'},
+        {x1:3,y1:10,x2:3,y2:7,  len:3, color:'#ff9b6b'},
+        {x1:3,y1:7,x2:0,y2:7,   len:3, color:'#51cf66'},
+        {x1:0,y1:7,x2:0,y2:3,   len:4, color:'#69d87e'},
+        {x1:0,y1:3,x2:3,y2:3,   len:3, color:'#4ecdc4'},
+        {x1:3,y1:3,x2:3,y2:0,   len:3, color:'#6bd4cf'},
+      ],
+      total:40, unit:'units'
+    }
+  },
+  {
+    id: 'u-shape',
+    name: 'U-Shape',
+    emoji: '🌙',
+    difficulty: '⭐⭐',
+    hint: 'A U-shape is like two tall columns connected at the bottom!',
+    vertices: [[0,0],[3,0],[3,5],[7,5],[7,0],[10,0],[10,8],[0,8]],
+    bbox: {w:10, h:8},
+    annotations: [
+      {x1:0,y1:0,x2:3,y2:0,   label:'3', dir:'up'},
+      {x1:0,y1:0,x2:0,y2:8,   label:'8', dir:'left'},
+      {x1:3,y1:0,x2:3,y2:5,   label:'5', dir:'right'},
+      {x1:3,y1:5,x2:7,y2:5,   label:'4', dir:'down'},
+      {x1:7,y1:0,x2:7,y2:5,   label:'5', dir:'left'},
+      {x1:7,y1:0,x2:10,y2:0,  label:'3', dir:'up'},
+      {x1:10,y1:0,x2:10,y2:8, label:'8', dir:'right'},
+      {x1:0,y1:8,x2:10,y2:8,  label:'10', dir:'down'},
+    ],
+    area: {
+      method: 'addition',
+      parts: [
+        {id:'A', color:'#ff6b6b', rect:{x:0,y:0,w:3,h:8},  label:'Left Column',  formula:'A = l × w', dims:'3 × 8', result:24, unit:'sq units'},
+        {id:'B', color:'#4ecdc4', rect:{x:7,y:0,w:3,h:8},  label:'Right Column', formula:'A = l × w', dims:'3 × 8', result:24, unit:'sq units'},
+        {id:'C', color:'#ffe66d', rect:{x:3,y:5,w:4,h:3},  label:'Bottom Bar',   formula:'A = l × w', dims:'4 × 3', result:12, unit:'sq units'},
+      ],
+      operation:'+', total:60, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {x1:0,y1:0,x2:3,y2:0,   len:3,  color:'#ff6b6b'},
+        {x1:3,y1:0,x2:3,y2:5,   len:5,  color:'#ff9b6b'},
+        {x1:3,y1:5,x2:7,y2:5,   len:4,  color:'#4ecdc4'},
+        {x1:7,y1:5,x2:7,y2:0,   len:5,  color:'#6bd4cf'},
+        {x1:7,y1:0,x2:10,y2:0,  len:3,  color:'#ffe66d'},
+        {x1:10,y1:0,x2:10,y2:8, len:8,  color:'#ffd43b'},
+        {x1:10,y1:8,x2:0,y2:8,  len:10, color:'#a78bfa'},
+        {x1:0,y1:8,x2:0,y2:0,   len:8,  color:'#51cf66'},
+      ],
+      total:46, unit:'units'
+    }
+  },
+  {
+    id: 'staircase',
+    name: 'Staircase',
+    emoji: '🏔️',
+    difficulty: '⭐⭐⭐',
+    hint: 'Staircases are tricky! Try using vertical cuts to make three rectangles.',
+    vertices: [[0,0],[3,0],[3,3],[6,3],[6,6],[9,6],[9,9],[0,9]],
+    bbox: {w:9, h:9},
+    annotations: [
+      {x1:0,y1:0,x2:3,y2:0,  label:'3', dir:'up'},
+      {x1:0,y1:0,x2:0,y2:9,  label:'9', dir:'left'},
+      {x1:3,y1:0,x2:3,y2:3,  label:'3', dir:'right'},
+      {x1:3,y1:3,x2:6,y2:3,  label:'3', dir:'up'},
+      {x1:6,y1:3,x2:6,y2:6,  label:'3', dir:'right'},
+      {x1:6,y1:6,x2:9,y2:6,  label:'3', dir:'up'},
+      {x1:9,y1:6,x2:9,y2:9,  label:'3', dir:'right'},
+      {x1:0,y1:9,x2:9,y2:9,  label:'9', dir:'down'},
+    ],
+    area: {
+      method: 'addition',
+      parts: [
+        {id:'A', color:'#ff6b6b', rect:{x:0,y:0,w:3,h:9}, label:'Left Column',   formula:'A = l × w', dims:'3 × 9', result:27, unit:'sq units'},
+        {id:'B', color:'#4ecdc4', rect:{x:3,y:3,w:3,h:6}, label:'Middle Column', formula:'A = l × w', dims:'3 × 6', result:18, unit:'sq units'},
+        {id:'C', color:'#ffe66d', rect:{x:6,y:6,w:3,h:3}, label:'Right Step',    formula:'A = l × w', dims:'3 × 3', result:9,  unit:'sq units'},
+      ],
+      operation:'+', total:54, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {x1:0,y1:0,x2:3,y2:0,  len:3, color:'#ff6b6b'},
+        {x1:3,y1:0,x2:3,y2:3,  len:3, color:'#ff9b6b'},
+        {x1:3,y1:3,x2:6,y2:3,  len:3, color:'#4ecdc4'},
+        {x1:6,y1:3,x2:6,y2:6,  len:3, color:'#6bd4cf'},
+        {x1:6,y1:6,x2:9,y2:6,  len:3, color:'#ffe66d'},
+        {x1:9,y1:6,x2:9,y2:9,  len:3, color:'#ffd43b'},
+        {x1:9,y1:9,x2:0,y2:9,  len:9, color:'#a78bfa'},
+        {x1:0,y1:9,x2:0,y2:0,  len:9, color:'#51cf66'},
+      ],
+      total:36, unit:'units'
+    }
+  },
+  {
+    id: 'notch-shape',
+    name: 'Rectangle + Notch',
+    emoji: '🔲',
+    difficulty: '⭐⭐⭐',
+    hint: 'Try the subtraction method: start with the full big rectangle, then subtract the missing piece!',
+    vertices: [[0,0],[8,0],[8,4],[12,4],[12,8],[0,8]],
+    bbox: {w:12, h:8},
+    annotations: [
+      {x1:0,y1:0,x2:8,y2:0,   label:'8', dir:'up'},
+      {x1:0,y1:0,x2:0,y2:8,   label:'8', dir:'left'},
+      {x1:8,y1:0,x2:8,y2:4,   label:'4', dir:'right'},
+      {x1:8,y1:4,x2:12,y2:4,  label:'4', dir:'up'},
+      {x1:12,y1:4,x2:12,y2:8, label:'4', dir:'right'},
+      {x1:0,y1:8,x2:12,y2:8,  label:'12', dir:'down'},
+    ],
+    area: {
+      method: 'subtraction',
+      parts: [
+        {id:'A', color:'#a78bfa', rect:{x:0,y:0,w:12,h:8}, label:'Full Rectangle (dashed)', formula:'A = l × w', dims:'12 × 8', result:96, unit:'sq units', isFull:true},
+        {id:'B', color:'#ff6b6b', rect:{x:8,y:0,w:4,h:4},  label:'Missing Piece',           formula:'A = l × w', dims:'4 × 4',  result:16, unit:'sq units', isMissing:true},
+      ],
+      operation:'-', total:80, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {x1:0,y1:0,x2:8,y2:0,   len:8, color:'#ff6b6b'},
+        {x1:8,y1:0,x2:8,y2:4,   len:4, color:'#ffaa6b'},
+        {x1:8,y1:4,x2:12,y2:4,  len:4, color:'#4ecdc4'},
+        {x1:12,y1:4,x2:12,y2:8, len:4, color:'#51cf66'},
+        {x1:12,y1:8,x2:0,y2:8,  len:12, color:'#ffe66d'},
+        {x1:0,y1:8,x2:0,y2:0,   len:8, color:'#a78bfa'},
+      ],
+      total:40, unit:'units'
+    }
+  },
+  {
+    id: 'f-shape',
+    name: 'F-Shape',
+    emoji: '📐',
+    difficulty: '⭐⭐⭐',
+    hint: 'An F-shape has a main column on the left with two bars sticking out to the right.',
+    vertices: [[0,0],[8,0],[8,3],[4,3],[4,5],[8,5],[8,8],[4,8],[4,10],[0,10]],
+    bbox: {w:8, h:10},
+    annotations: [
+      {x1:0,y1:0,x2:8,y2:0,   label:'8', dir:'up'},
+      {x1:0,y1:0,x2:0,y2:10,  label:'10', dir:'left'},
+      {x1:8,y1:0,x2:8,y2:3,   label:'3', dir:'right'},
+      {x1:4,y1:3,x2:8,y2:3,   label:'4', dir:'down'},
+      {x1:4,y1:3,x2:4,y2:5,   label:'2', dir:'right'},
+      {x1:4,y1:5,x2:8,y2:5,   label:'4', dir:'up'},
+      {x1:8,y1:5,x2:8,y2:8,   label:'3', dir:'right'},
+      {x1:4,y1:8,x2:8,y2:8,   label:'4', dir:'down'},
+      {x1:4,y1:8,x2:4,y2:10,  label:'2', dir:'right'},
+      {x1:0,y1:10,x2:4,y2:10, label:'4', dir:'down'},
+    ],
+    area: {
+      method: 'addition',
+      parts: [
+        {id:'A', color:'#ff6b6b', rect:{x:0,y:0,w:4,h:10}, label:'Main Column',   formula:'A = l × w', dims:'4 × 10', result:40, unit:'sq units'},
+        {id:'B', color:'#4ecdc4', rect:{x:4,y:0,w:4,h:3},  label:'Top Bar',       formula:'A = l × w', dims:'4 × 3',  result:12, unit:'sq units'},
+        {id:'C', color:'#ffe66d', rect:{x:4,y:5,w:4,h:3},  label:'Middle Bar',    formula:'A = l × w', dims:'4 × 3',  result:12, unit:'sq units'},
+      ],
+      operation:'+', total:64, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {x1:0,y1:0,x2:8,y2:0,   len:8, color:'#ff6b6b'},
+        {x1:8,y1:0,x2:8,y2:3,   len:3, color:'#ff9b6b'},
+        {x1:8,y1:3,x2:4,y2:3,   len:4, color:'#4ecdc4'},
+        {x1:4,y1:3,x2:4,y2:5,   len:2, color:'#6bd4cf'},
+        {x1:4,y1:5,x2:8,y2:5,   len:4, color:'#ffe66d'},
+        {x1:8,y1:5,x2:8,y2:8,   len:3, color:'#ffd43b'},
+        {x1:8,y1:8,x2:4,y2:8,   len:4, color:'#a78bfa'},
+        {x1:4,y1:8,x2:4,y2:10,  len:2, color:'#c4a8ff'},
+        {x1:4,y1:10,x2:0,y2:10, len:4, color:'#51cf66'},
+        {x1:0,y1:10,x2:0,y2:0,  len:10, color:'#69d87e'},
+      ],
+      total:44, unit:'units'
+    }
+  }
+];
+
+/* ═══════════════════════════════════════════════════════
+   GAME STATE
+═══════════════════════════════════════════════════════ */
+let currentShape = SHAPES[0];
+let currentMode  = 'area';   // 'area' or 'perimeter'
+let currentStep  = -1;       // -1 = problem shown, not started
+let totalSteps   = 0;
+let score        = {correct:0, total:0, streak:0};
+let animId       = null;
+let perimAnimProgress = 0; // 0-1 for perimeter tracing animation
+let perimSegIdx  = 0;      // which segment is being traced
+
+/* ═══════════════════════════════════════════════════════
+   CANVAS SETUP
+═══════════════════════════════════════════════════════ */
+const canvas = document.getElementById('shapeCanvas');
+const ctx    = canvas.getContext('2d');
+let SCALE = 40;
+let OFFSET_X = 0;
+let OFFSET_Y = 0;
+
+function calcScaleAndOffset(shape) {
+  const maxW = canvas.width  - 80;
+  const maxH = canvas.height - 80;
+  const sx = maxW / shape.bbox.w;
+  const sy = maxH / shape.bbox.h;
+  SCALE = Math.min(sx, sy, 52);
+  OFFSET_X = (canvas.width  - shape.bbox.w * SCALE) / 2;
+  OFFSET_Y = (canvas.height - shape.bbox.h * SCALE) / 2;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CANVAS DRAWING
+═══════════════════════════════════════════════════════ */
+function toCanvasX(gx) { return OFFSET_X + gx * SCALE; }
+function toCanvasY(gy) { return OFFSET_Y + gy * SCALE; }
+
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let gx = 0; gx <= currentShape.bbox.w; gx++) {
+    ctx.beginPath();
+    ctx.moveTo(toCanvasX(gx), toCanvasY(0));
+    ctx.lineTo(toCanvasX(gx), toCanvasY(currentShape.bbox.h));
+    ctx.stroke();
+  }
+  for (let gy = 0; gy <= currentShape.bbox.h; gy++) {
+    ctx.beginPath();
+    ctx.moveTo(toCanvasX(0), toCanvasY(gy));
+    ctx.lineTo(toCanvasX(currentShape.bbox.w), toCanvasY(gy));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawShapeBase(shape, fillAlpha) {
+  ctx.save();
+  ctx.beginPath();
+  shape.vertices.forEach(([gx,gy], i) => {
+    if (i===0) ctx.moveTo(toCanvasX(gx), toCanvasY(gy));
+    else        ctx.lineTo(toCanvasX(gx), toCanvasY(gy));
+  });
+  ctx.closePath();
+  ctx.fillStyle = `rgba(130,150,255,${fillAlpha})`;
+  ctx.fill();
+  ctx.strokeStyle = '#6060cc';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawComponentRect(part, alpha) {
+  const {x, y, w, h} = part.rect;
+  const cx = toCanvasX(x), cy = toCanvasY(y);
+  const cw = w * SCALE,    ch = h * SCALE;
+
+  ctx.save();
+  if (part.isFull) {
+    // Draw as dashed outline of whole rectangle
+    ctx.setLineDash([8, 5]);
+    ctx.strokeStyle = part.color;
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(cx, cy, cw, ch);
+    ctx.fillStyle = `rgba(${hexToRgb(part.color)}, ${alpha * 0.12})`;
+    ctx.fillRect(cx, cy, cw, ch);
+    ctx.setLineDash([]);
+  } else if (part.isMissing) {
+    // Draw the missing chunk with an X pattern
+    ctx.fillStyle = `rgba(${hexToRgb(part.color)}, ${alpha * 0.3})`;
+    ctx.fillRect(cx, cy, cw, ch);
+    ctx.strokeStyle = part.color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(cx, cy, cw, ch);
+    ctx.setLineDash([]);
+    // X through it
+    ctx.strokeStyle = `rgba(${hexToRgb(part.color)}, ${alpha * 0.6})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx,cy);   ctx.lineTo(cx+cw,cy+ch); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+cw,cy); ctx.lineTo(cx,cy+ch);   ctx.stroke();
+  } else {
+    ctx.fillStyle = `rgba(${hexToRgb(part.color)}, ${alpha * 0.45})`;
+    ctx.fillRect(cx, cy, cw, ch);
+    ctx.strokeStyle = part.color;
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(cx, cy, cw, ch);
+  }
+
+  // Label badge in center of rect (for visible parts)
+  if (!part.isFull && alpha > 0.5) {
+    const lx = cx + cw/2;
+    const ly = cy + ch/2;
+    const label = part.id;
+    ctx.fillStyle = part.color;
+    ctx.font = `bold ${Math.max(14, Math.min(20, SCALE*0.4))}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // Shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(label, lx, ly);
+    ctx.shadowBlur = 0;
+  }
+  ctx.restore();
+}
+
+function drawAnnotations(shape) {
+  const OFFSET_PX = 22;
+  ctx.save();
+  ctx.font = `bold ${Math.max(11, Math.min(15, SCALE*0.32))}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  for (const ann of shape.annotations) {
+    const x1 = toCanvasX(ann.x1), y1 = toCanvasY(ann.y1);
+    const x2 = toCanvasX(ann.x2), y2 = toCanvasY(ann.y2);
+    const mx = (x1+x2)/2, my = (y1+y2)/2;
+
+    let ox = 0, oy = 0;
+    if (ann.dir === 'up')    oy = -OFFSET_PX;
+    if (ann.dir === 'down')  oy =  OFFSET_PX;
+    if (ann.dir === 'left')  ox = -OFFSET_PX;
+    if (ann.dir === 'right') ox =  OFFSET_PX;
+
+    // Tick line offset from edge
+    const lx1 = x1 + ox * 0.5, ly1 = y1 + oy * 0.5;
+    const lx2 = x2 + ox * 0.5, ly2 = y2 + oy * 0.5;
+
+    // Tick marks at ends
+    ctx.strokeStyle = 'rgba(200,200,255,0.5)';
+    ctx.lineWidth = 1.5;
+    // Perpendicular ticks
+    const tickLen = 5;
+    const px = (ann.dir === 'up' || ann.dir === 'down') ? tickLen : 0;
+    const py = (ann.dir === 'left' || ann.dir === 'right') ? tickLen : 0;
+
+    ctx.beginPath();
+    ctx.moveTo(lx1 - px, ly1 - py); ctx.lineTo(lx1 + px, ly1 + py); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(lx2 - px, ly2 - py); ctx.lineTo(lx2 + px, ly2 + py); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(lx1, ly1); ctx.lineTo(lx2, ly2); ctx.stroke();
+
+    // Label background pill
+    const lbl = String(ann.label);
+    const tw = ctx.measureText(lbl).width;
+    const lbx = mx + ox, lby = my + oy;
+    const pw = tw + 10, ph = 18;
+    ctx.fillStyle = 'rgba(10,10,30,0.85)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(lbx - pw/2, lby - ph/2, pw, ph, 5);
+    else               ctx.rect(lbx - pw/2, lby - ph/2, pw, ph);
+    ctx.fill();
+
+    ctx.fillStyle = '#d0d0ff';
+    ctx.fillText(lbl, lbx, lby);
+  }
+  ctx.restore();
+}
+
+function drawOutlineOnly(shape) {
+  ctx.save();
+  ctx.beginPath();
+  shape.vertices.forEach(([gx,gy], i) => {
+    if (i===0) ctx.moveTo(toCanvasX(gx), toCanvasY(gy));
+    else        ctx.lineTo(toCanvasX(gx), toCanvasY(gy));
+  });
+  ctx.closePath();
+  ctx.strokeStyle = '#8080dd';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPerimeterTrace(shape, segIdx, progress) {
+  ctx.save();
+  const segs = shape.perimeter.segments;
+  // Draw completed segments
+  for (let i = 0; i < segIdx; i++) {
+    const s = segs[i];
+    ctx.beginPath();
+    ctx.moveTo(toCanvasX(s.x1), toCanvasY(s.y1));
+    ctx.lineTo(toCanvasX(s.x2), toCanvasY(s.y2));
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+  // Draw current segment partially
+  if (segIdx < segs.length) {
+    const s = segs[segIdx];
+    const ex = s.x1 + (s.x2 - s.x1) * progress;
+    const ey = s.y1 + (s.y2 - s.y1) * progress;
+    ctx.beginPath();
+    ctx.moveTo(toCanvasX(s.x1), toCanvasY(s.y1));
+    ctx.lineTo(toCanvasX(ex), toCanvasY(ey));
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    // Moving dot
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(toCanvasX(ex), toCanvasY(ey), 7, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.arc(toCanvasX(ex), toCanvasY(ey), 5, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function renderCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+
+  const shape = currentShape;
+  const step  = currentStep;
+
+  if (currentMode === 'area') {
+    const parts = shape.area.parts;
+
+    if (step < 0) {
+      drawShapeBase(shape, 0.1);
+    } else if (step === 0) {
+      // Intro card: just the outline
+      drawShapeBase(shape, 0.06);
+    } else {
+      drawShapeBase(shape, 0.05);
+      // step=1 → show parts[0], step=2 → parts[0..1], etc.
+      const partsToShow = step; // 1-indexed: show parts[0..step-1]
+      for (let i = 0; i < Math.min(partsToShow, parts.length); i++) {
+        drawComponentRect(parts[i], 1);
+      }
+      // Pulse glow on the most-recently revealed part
+      const activeIdx = step - 1;
+      if (activeIdx >= 0 && activeIdx < parts.length) {
+        const t = (Date.now() / 600) % 1;
+        const glow = 12 + 12 * Math.sin(t * Math.PI * 2);
+        ctx.save();
+        ctx.shadowColor = parts[activeIdx].color;
+        ctx.shadowBlur  = glow;
+        drawComponentRect(parts[activeIdx], 1);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
+    }
+    drawOutlineOnly(shape);
+    drawAnnotations(shape);
+
+  } else {
+    // Perimeter mode
+    drawShapeBase(shape, 0.07);
+    drawOutlineOnly(shape);
+
+    if (step >= 1) {
+      const seg = shape.perimeter.segments;
+      // step=1 → segment 0 animating, step=2 → seg[0] done + seg[1] animating, etc.
+      const completedSegs = step - 1;
+      for (let i = 0; i < Math.min(completedSegs, seg.length); i++) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(toCanvasX(seg[i].x1), toCanvasY(seg[i].y1));
+        ctx.lineTo(toCanvasX(seg[i].x2), toCanvasY(seg[i].y2));
+        ctx.strokeStyle = seg[i].color;
+        ctx.lineWidth = 7;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (completedSegs < seg.length) {
+        drawPerimeterTrace(shape, completedSegs, Math.min(perimAnimProgress, 1));
+      }
+    }
+    drawAnnotations(shape);
+  }
+}
+
+// Animation loop for perimeter tracing
+let lastTime = 0;
+function animLoop(ts) {
+  if (currentMode === 'perimeter' && currentStep >= 1) {
+    const dt = Math.min(ts - lastTime, 100); // clamp large deltas
+    lastTime = ts;
+    const speed = 1.2; // units per second
+    perimAnimProgress = Math.min(perimAnimProgress + dt / 1000 * speed, 1);
+  }
+  renderCanvas();
+  animId = requestAnimationFrame(animLoop);
+}
+
+/* ═══════════════════════════════════════════════════════
+   STEP SYSTEM
+═══════════════════════════════════════════════════════ */
+function buildSteps(shape, mode) {
+  const steps = [];
+  if (mode === 'area') {
+    const method = shape.area.method;
+    // Step 0: Intro
+    steps.push({type:'intro', mode:'area', method});
+    // Steps for each part
+    for (let i = 0; i < shape.area.parts.length; i++) {
+      steps.push({type:'part', part: shape.area.parts[i], partIdx: i, mode:'area', method});
+    }
+    // Final step: total
+    steps.push({type:'total', shape, mode:'area'});
+  } else {
+    // Perimeter
+    steps.push({type:'intro', mode:'perimeter'});
+    const segs = shape.perimeter.segments;
+    for (let i = 0; i < segs.length; i++) {
+      steps.push({type:'segment', seg: segs[i], segIdx: i, shape});
+    }
+    steps.push({type:'total', shape, mode:'perimeter'});
+  }
+  return steps;
+}
+
+let steps = [];
+
+function initProblem() {
+  const shape = currentShape;
+  const mode  = currentMode;
+  calcScaleAndOffset(shape);
+
+  steps = buildSteps(shape, mode);
+  totalSteps = steps.length;
+  currentStep = -1;
+  perimAnimProgress = 0;
+
+  // Update UI
+  document.getElementById('shapeName').textContent = shape.emoji + ' ' + shape.name;
+  const mb = document.getElementById('modeBadge');
+  mb.textContent = mode === 'area' ? 'Area' : 'Perimeter';
+  mb.className = 'mode-badge ' + (mode === 'area' ? 'mode-area' : 'mode-perim');
+  document.getElementById('diffStars').textContent = shape.difficulty;
+
+  const unitStr = mode === 'area' ? 'square units' : 'units';
+  document.getElementById('questionText').textContent =
+    `Find the ${mode === 'area' ? 'area' : 'perimeter'} of the ${shape.name} below. All measurements are in units.`;
+
+  // Reset solution panel
+  document.getElementById('idleMsg').style.display = '';
+  document.getElementById('stepsContainer').innerHTML = '';
+
+  // Reset buttons
+  document.getElementById('btnShow').textContent = '✨ Show Me How!';
+  document.getElementById('btnShow').disabled = false;
+  document.getElementById('btnNext').disabled = true;
+
+  // Build progress dots
+  const prog = document.getElementById('stepProgress');
+  prog.innerHTML = '';
+  for (let i = 0; i < totalSteps; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'step-dot';
+    dot.id = `dot-${i}`;
+    prog.appendChild(dot);
+  }
+}
+
+function updateProgressDots() {
+  for (let i = 0; i < totalSteps; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    if (!dot) continue;
+    if (i < currentStep)     dot.className = 'step-dot done';
+    else if (i === currentStep) dot.className = 'step-dot active';
+    else                     dot.className = 'step-dot';
+  }
+}
+
+function handleShowBtn() {
+  if (currentStep < 0) {
+    currentStep = 0;
+    document.getElementById('idleMsg').style.display = 'none';
+    document.getElementById('btnShow').textContent = '→ Next Step';
+    document.getElementById('btnNext').disabled = false;
+    renderStepCard(0);
+    updateProgressDots();
+    return;
+  }
+  nextStep();
+}
+
+function nextStep() {
+  currentStep++;
+  if (currentStep >= totalSteps) {
+    // Problem complete
+    currentStep = totalSteps - 1;
+    document.getElementById('btnNext').disabled = true;
+    document.getElementById('btnShow').disabled = true;
+    celebrate();
+    score.correct++;
+    score.total++;
+    score.streak++;
+    updateScore();
+    showToast('🎉 Excellent work! Try a new problem!', 'success');
+    return;
+  }
+  renderStepCard(currentStep);
+  updateProgressDots();
+
+  const isLast = currentStep === totalSteps - 1;
+  if (isLast) {
+    document.getElementById('btnShow').textContent = '✅ Done!';
+    document.getElementById('btnNext').disabled = true;
+  }
+  // Scroll solution panel to bottom
+  const panel = document.getElementById('solutionPanel');
+  setTimeout(() => { panel.scrollTop = panel.scrollHeight; }, 100);
+}
+
+function renderStepCard(stepIdx) {
+  const step = steps[stepIdx];
+  const container = document.getElementById('stepsContainer');
+  const card = document.createElement('div');
+  card.className = 'step-card';
+
+  if (step.type === 'intro') {
+    card.classList.add('intro-card');
+    const method = step.method === 'subtraction' ? 'subtraction' : 'addition';
+    const icon   = step.mode === 'area' ? '✂️' : '📏';
+    card.innerHTML = `
+      <div class="step-card-header">
+        <div class="step-num sn-intro">${stepIdx + 1}</div>
+        <div class="step-title">${icon} Let's Break It Down!</div>
+      </div>
+      <div class="step-body">
+        ${step.mode === 'area'
+          ? `We'll use the <strong>${method} method</strong>.<br>
+             Split the composite shape into simpler pieces, calculate each piece's area, then ${method === 'addition' ? 'add them together' : 'subtract the missing piece'}.`
+          : `For perimeter, we trace <strong>all the outer edges</strong> of the shape and add up their lengths.<br>
+             We'll go segment by segment around the border!`
+        }
+        <br><br>
+        <em style="color:var(--primary)">💡 ${currentShape.hint}</em>
+      </div>`;
+
+  } else if (step.type === 'part') {
+    const part = step.part;
+    const cls = ['sn-A','sn-B','sn-C'][step.partIdx] || 'sn-A';
+    const cardCls = ['part-A','part-B','part-C'][step.partIdx] || 'part-A';
+    card.classList.add(cardCls);
+
+    const subNote = part.isFull
+      ? '<br><em style="color:var(--muted);font-size:0.8em">(Imagine the full rectangle — we\'ll subtract the missing piece next!)</em>'
+      : part.isMissing
+        ? '<br><em style="color:var(--accent);font-size:0.8em">⚠️ This piece is missing — we need to subtract it!</em>'
+        : '';
+
+    card.innerHTML = `
+      <div class="step-card-header">
+        <div class="step-num ${cls}">${stepIdx + 1}</div>
+        <div class="step-title">${part.label}</div>
+      </div>
+      <div class="step-body">
+        <div class="formula-pill">${part.formula}</div>
+        <div class="calc-line">
+          ${part.label} Area = ${part.dims} = <span class="result-num">${part.result} ${part.unit}</span>
+        </div>
+        ${subNote}
+      </div>`;
+
+  } else if (step.type === 'segment') {
+    const seg = step.seg;
+    const col = seg.color;
+    const allSegs = step.shape.perimeter.segments;
+    const runningTotal = allSegs.slice(0, step.segIdx + 1).reduce((s, g) => s + g.len, 0);
+
+    card.innerHTML = `
+      <div class="step-card-header">
+        <div class="step-num" style="background:${col};color:#0d0d1f">${stepIdx + 1}</div>
+        <div class="step-title">📏 Side ${step.segIdx + 1} of ${allSegs.length}</div>
+      </div>
+      <div class="step-body">
+        <div class="calc-line">Length = <span style="color:${col};font-weight:700">${seg.len} units</span></div>
+        <div style="margin-top:6px;font-size:0.8rem;color:var(--muted)">
+          Running total: ${allSegs.slice(0,step.segIdx+1).map(g=>g.len).join(' + ')} = <strong style="color:var(--teal)">${runningTotal} units</strong>
+        </div>
+      </div>`;
+    perimAnimProgress = 0; // restart animation for each new segment
+
+  } else if (step.type === 'total') {
+    card.classList.add('total-card');
+    const isArea = step.mode === 'area';
+    const s = step.shape;
+
+    if (isArea) {
+      const parts = s.area.parts;
+      const op    = s.area.operation;
+      const nonFull = parts.filter(p => !p.isFull);
+      const eqParts = parts.map(p => `${p.isMissing ? '(' + p.result + ')' : p.result}`).join(` ${op} `);
+
+      card.innerHTML = `
+        <div class="step-card-header">
+          <div class="step-num sn-total">${stepIdx + 1}</div>
+          <div class="step-title">🏆 Total Area</div>
+        </div>
+        <div class="step-body">
+          <div class="formula-pill">Total Area = ${parts.map(p=>p.label).join(` ${op} `)}</div>
+          <div class="total-display">
+            <div class="total-eq">${eqParts} = ${s.area.total}</div>
+            <div class="total-val">${s.area.total} ${s.area.unit}</div>
+          </div>
+        </div>`;
+    } else {
+      const segs = s.perimeter.segments;
+      card.innerHTML = `
+        <div class="step-card-header">
+          <div class="step-num sn-total">${stepIdx + 1}</div>
+          <div class="step-title">🏆 Total Perimeter</div>
+        </div>
+        <div class="step-body">
+          <div class="formula-pill">Perimeter = sum of all outer sides</div>
+          <div class="perim-segments">
+            ${segs.map((sg,i) => `
+              <span class="perim-seg" style="color:${sg.color};border-color:${sg.color}">${sg.len}</span>
+              ${i < segs.length-1 ? '<span class="perim-plus">+</span>' : ''}
+            `).join('')}
+          </div>
+          <div class="total-display">
+            <div class="total-eq">${segs.map(sg=>sg.len).join(' + ')} = ${s.perimeter.total}</div>
+            <div class="total-val">${s.perimeter.total} ${s.perimeter.unit}</div>
+          </div>
+        </div>`;
+    }
+  }
+
+  container.appendChild(card);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PROBLEM MANAGEMENT
+═══════════════════════════════════════════════════════ */
+function newProblem() {
+  // Pick a random shape different from current
+  let idx;
+  do { idx = Math.floor(Math.random() * SHAPES.length); }
+  while (SHAPES[idx].id === currentShape.id && SHAPES.length > 1);
+
+  currentShape = SHAPES[idx];
+  currentMode  = Math.random() < 0.5 ? 'area' : 'perimeter';
+  initProblem();
+}
+
+function toggleMode() {
+  currentMode = currentMode === 'area' ? 'perimeter' : 'area';
+  initProblem();
+  showToast(`Switched to ${currentMode === 'area' ? 'Area' : 'Perimeter'} mode`, 'info');
+}
+
+/* ═══════════════════════════════════════════════════════
+   SCORE & UI
+═══════════════════════════════════════════════════════ */
+function updateScore() {
+  document.getElementById('scoreDisplay').textContent = `${score.correct} / ${score.total}`;
+  document.getElementById('streakDisplay').textContent = `🔥 ${score.streak}`;
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+function celebrate() {
+  const el = document.createElement('div');
+  el.className = 'celebration-text';
+  el.textContent = ['🎉','⭐','🌟','🏆','✨'][Math.floor(Math.random()*5)];
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+
+  const colors = ['#ff6b6b','#4ecdc4','#ffe66d','#a78bfa','#51cf66'];
+  for (let i = 0; i < 30; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti-piece';
+    c.style.cssText = `
+      left: ${40 + Math.random()*20}%;
+      top:  ${40 + Math.random()*20}%;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      --tx: ${(Math.random()-0.5)*300}px;
+      --ty: ${(Math.random()-0.5)*300}px;
+      --dur: ${0.8 + Math.random()*0.8}s;
+    `;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 1800);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   CALCULATOR
+═══════════════════════════════════════════════════════ */
+let calcExpr = '';
+let calcResult = null;
+
+function calcNum(n) {
+  if (calcResult !== null && !'+-×÷%'.includes(calcExpr.slice(-1))) {
+    calcExpr = ''; calcResult = null;
+  }
+  if (n === '.' && calcExpr.split(/[\+\-\×÷]/).pop().includes('.')) return;
+  calcExpr += n;
+  updateCalcDisplay();
+}
+
+function calcOp(op) {
+  calcResult = null;
+  if (calcExpr === '' && op === '-') { calcExpr = '-'; }
+  else if (calcExpr !== '' && !'+-×÷'.includes(calcExpr.slice(-1))) {
+    calcExpr += op;
+  } else if ('+-×÷'.includes(calcExpr.slice(-1))) {
+    calcExpr = calcExpr.slice(0,-1) + op;
+  }
+  updateCalcDisplay();
+}
+
+function calcEquals() {
+  if (calcExpr === '') return;
+  try {
+    const expr = calcExpr.replace(/×/g,'*').replace(/÷/g,'/');
+    const result = Function(`'use strict'; return (${expr})`)();
+    document.getElementById('calcHistory').textContent = calcExpr + ' =';
+    calcResult = Math.round(result * 10000) / 10000;
+    calcExpr = String(calcResult);
+    updateCalcDisplay();
+  } catch(e) { calcExpr = 'Error'; updateCalcDisplay(); calcExpr = ''; }
+}
+
+function calcClear()     { calcExpr = ''; calcResult = null; document.getElementById('calcHistory').textContent = ''; updateCalcDisplay(); }
+function calcBackspace() { calcExpr = calcExpr.slice(0,-1); updateCalcDisplay(); }
+function updateCalcDisplay() {
+  document.getElementById('calcDisplay').textContent = calcExpr || '0';
+}
+
+/* ═══════════════════════════════════════════════════════
+   COLLAPSIBLES
+═══════════════════════════════════════════════════════ */
+function toggleCalc() {
+  const body  = document.getElementById('calcBody');
+  const arrow = document.getElementById('calcArrow');
+  const open  = body.classList.toggle('open');
+  arrow.textContent = open ? '▲' : '▼';
+}
+
+function toggleFormulas() {
+  const body  = document.getElementById('formulaBody');
+  const arrow = document.getElementById('formulaArrow');
+  const open  = body.classList.toggle('open');
+  arrow.textContent = open ? '▲' : '▼';
+}
+
+/* ═══════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════ */
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+═══════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); handleShowBtn(); }
+  if (e.key === 'n' || e.key === 'N') newProblem();
+  if (e.key === 'm' || e.key === 'M') toggleMode();
+});
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+function init() {
+  // Pick a random starting shape and mode
+  currentShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+  currentMode  = 'area';
+  calcScaleAndOffset(currentShape);
+  initProblem();
+  animId = requestAnimationFrame(animLoop);
+
+  // Open formula panel by default
+  document.getElementById('formulaBody').classList.add('open');
+  document.getElementById('formulaArrow').textContent = '▲';
+
+  // Open calculator
+  document.getElementById('calcBody').classList.add('open');
+  document.getElementById('calcArrow').textContent = '▲';
+}
+
+// Recalculate scale on resize
+window.addEventListener('resize', () => {
+  calcScaleAndOffset(currentShape);
+});
+
+init();
+</script>
+</body>
+</html>
