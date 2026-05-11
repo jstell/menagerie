@@ -608,7 +608,7 @@ canvas#shapeCanvas {
     <div class="title-block">
       <h1>Shape Explorer</h1>
       <div class="subtitle">Virginia SOL · Area &amp; Perimeter Practice</div>
-      <div style="font-size:0.6rem;color:rgba(200,200,255,0.25);margin-top:1px">2026-05-10 23:25 UTC (8f2592b)</div>
+      <div style="font-size:0.6rem;color:rgba(200,200,255,0.25);margin-top:1px">2026-05-11 01:51 UTC (eba7dc9)</div>
     </div>
   </div>
   <div class="header-right">
@@ -1062,6 +1062,115 @@ const SHAPES = [
       ],
       total:44, unit:'units'
     }
+  },
+  {
+    id: 'house-shape',
+    name: 'House Shape',
+    emoji: '🏠',
+    difficulty: '⭐⭐',
+    hint: 'Split the house at the roofline: a triangle roof on top and a rectangle base below!',
+    vertices: [[3,0],[6,4],[6,8],[0,8],[0,4]],
+    bbox: {w:6, h:8},
+    annotations: [
+      {x1:0,y1:4,x2:3,y2:0, label:'5', offx:-16, offy:-8},
+      {x1:3,y1:0,x2:6,y2:4, label:'5', offx:16, offy:-8},
+      {x1:6,y1:4,x2:6,y2:8, label:'4', dir:'right'},
+      {x1:0,y1:8,x2:6,y2:8, label:'6', dir:'down'},
+      {x1:0,y1:4,x2:0,y2:8, label:'4', dir:'left'},
+      {x1:3,y1:0,x2:3,y2:4, label:'4', dir:'right', interior:true},
+    ],
+    area: {
+      method: 'addition',
+      parts: [
+        {id:'A', color:'#ff6b6b', triangle:{x1:0,y1:4,x2:3,y2:0,x3:6,y3:4}, label:'Triangle Roof', formula:'A = ½ × b × h', dims:'½ × 6 × 4', result:12, unit:'sq units'},
+        {id:'B', color:'#4ecdc4', rect:{x:0,y:4,w:6,h:4}, label:'Rectangle Base', formula:'A = l × w', dims:'6 × 4', result:24, unit:'sq units'},
+      ],
+      operation:'+', total:36, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {x1:3,y1:0,x2:6,y2:4, len:5, color:'#ff6b6b'},
+        {x1:6,y1:4,x2:6,y2:8, len:4, color:'#ffaa6b'},
+        {x1:6,y1:8,x2:0,y2:8, len:6, color:'#4ecdc4'},
+        {x1:0,y1:8,x2:0,y2:4, len:4, color:'#51cf66'},
+        {x1:0,y1:4,x2:3,y2:0, len:5, color:'#ffe66d'},
+      ],
+      total:24, unit:'units'
+    }
+  },
+  {
+    id: 'arch-shape',
+    name: 'Arch / Tunnel',
+    emoji: '🌈',
+    difficulty: '⭐⭐',
+    hint: 'An arch is a rectangle with a semicircle sitting on top — add their areas together!',
+    pathCommands: [
+      {type:'moveTo', x:0, y:7},
+      {type:'lineTo', x:6, y:7},
+      {type:'lineTo', x:6, y:3},
+      {type:'arc', cx:3, cy:3, r:3, startAngle:0, endAngle:Math.PI, anticlockwise:true},
+      {type:'closePath'},
+    ],
+    bbox: {w:6, h:7},
+    annotations: [
+      {x1:3,y1:3,x2:6,y2:3, label:'r=3', dir:'down'},
+      {x1:6,y1:3,x2:6,y2:7, label:'4', dir:'right'},
+      {x1:0,y1:7,x2:6,y2:7, label:'6', dir:'down'},
+      {x1:0,y1:3,x2:0,y2:7, label:'4', dir:'left'},
+    ],
+    area: {
+      method: 'addition',
+      parts: [
+        {id:'A', color:'#a78bfa', semicircle:{cx:3,cy:3,r:3,startAngle:0,endAngle:Math.PI,anticlockwise:true}, centroid:{x:3,y:1.7}, label:'Semicircle', formula:'A = ½ × π × r²', dims:'½ × 3.14 × 3²', result:14.1, unit:'sq units'},
+        {id:'B', color:'#4ecdc4', rect:{x:0,y:3,w:6,h:4}, label:'Rectangle', formula:'A = l × w', dims:'6 × 4', result:24, unit:'sq units'},
+      ],
+      operation:'+', total:38.1, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {type:'arc', cx:3, cy:3, r:3, startAngle:Math.PI, endAngle:0, anticlockwise:false, len:9.4, color:'#a78bfa'},
+        {x1:6,y1:3,x2:6,y2:7, len:4, color:'#4ecdc4'},
+        {x1:6,y1:7,x2:0,y2:7, len:6, color:'#ffe66d'},
+        {x1:0,y1:7,x2:0,y2:3, len:4, color:'#51cf66'},
+      ],
+      total:23.4, unit:'units'
+    }
+  },
+  {
+    id: 'ice-cream-shape',
+    name: 'Ice Cream Cone',
+    emoji: '🍦',
+    difficulty: '⭐⭐⭐',
+    hint: 'The scoop is a semicircle and the cone is a triangle — add both areas together!',
+    pathCommands: [
+      {type:'moveTo', x:0, y:3},
+      {type:'arc', cx:3, cy:3, r:3, startAngle:Math.PI, endAngle:0, anticlockwise:false},
+      {type:'lineTo', x:3, y:7},
+      {type:'closePath'},
+    ],
+    bbox: {w:6, h:7},
+    annotations: [
+      {x1:3,y1:0,x2:3,y2:3, label:'3', dir:'left'},
+      {x1:3,y1:3,x2:3,y2:7, label:'4', dir:'right', interior:true},
+      {x1:6,y1:3,x2:3,y2:7, label:'5', offx:18, offy:8},
+      {x1:3,y1:7,x2:0,y2:3, label:'5', offx:-18, offy:8},
+    ],
+    area: {
+      method: 'addition',
+      parts: [
+        {id:'A', color:'#ff6b6b', semicircle:{cx:3,cy:3,r:3,startAngle:Math.PI,endAngle:0,anticlockwise:false}, centroid:{x:3,y:1.7}, label:'Semicircle Scoop', formula:'A = ½ × π × r²', dims:'½ × 3.14 × 3²', result:14.1, unit:'sq units'},
+        {id:'B', color:'#ffe66d', triangle:{x1:0,y1:3,x2:6,y2:3,x3:3,y3:7}, label:'Triangle Cone', formula:'A = ½ × b × h', dims:'½ × 6 × 4', result:12, unit:'sq units'},
+      ],
+      operation:'+', total:26.1, unit:'sq units'
+    },
+    perimeter: {
+      segments:[
+        {type:'arc', cx:3, cy:3, r:3, startAngle:Math.PI, endAngle:0, anticlockwise:false, len:9.4, color:'#ff6b6b'},
+        {x1:6,y1:3,x2:3,y2:7, len:5, color:'#4ecdc4'},
+        {x1:3,y1:7,x2:0,y2:3, len:5, color:'#ffe66d'},
+      ],
+      total:19.4, unit:'units'
+    }
   }
 ];
 
@@ -1121,19 +1230,88 @@ function drawGrid() {
   ctx.restore();
 }
 
+function buildShapePath(shape) {
+  if (shape.pathCommands) {
+    for (const cmd of shape.pathCommands) {
+      if      (cmd.type === 'moveTo')    ctx.moveTo(toCanvasX(cmd.x), toCanvasY(cmd.y));
+      else if (cmd.type === 'lineTo')    ctx.lineTo(toCanvasX(cmd.x), toCanvasY(cmd.y));
+      else if (cmd.type === 'arc')       ctx.arc(toCanvasX(cmd.cx), toCanvasY(cmd.cy), cmd.r * SCALE, cmd.startAngle, cmd.endAngle, cmd.anticlockwise);
+      else if (cmd.type === 'closePath') ctx.closePath();
+    }
+  } else {
+    shape.vertices.forEach(([gx,gy], i) => {
+      if (i===0) ctx.moveTo(toCanvasX(gx), toCanvasY(gy));
+      else        ctx.lineTo(toCanvasX(gx), toCanvasY(gy));
+    });
+    ctx.closePath();
+  }
+}
+
 function drawShapeBase(shape, fillAlpha) {
   ctx.save();
   ctx.beginPath();
-  shape.vertices.forEach(([gx,gy], i) => {
-    if (i===0) ctx.moveTo(toCanvasX(gx), toCanvasY(gy));
-    else        ctx.lineTo(toCanvasX(gx), toCanvasY(gy));
-  });
-  ctx.closePath();
+  buildShapePath(shape);
   ctx.fillStyle = `rgba(130,150,255,${fillAlpha})`;
   ctx.fill();
   ctx.strokeStyle = '#6060cc';
   ctx.lineWidth = 2;
   ctx.stroke();
+  ctx.restore();
+}
+
+function drawComponentPart(part, alpha) {
+  if (part.triangle)   drawComponentTriangle(part, alpha);
+  else if (part.semicircle) drawComponentSemicircle(part, alpha);
+  else                 drawComponentRect(part, alpha);
+}
+
+function drawComponentTriangle(part, alpha) {
+  const {x1,y1,x2,y2,x3,y3} = part.triangle;
+  const cx1=toCanvasX(x1), cy1=toCanvasY(y1);
+  const cx2=toCanvasX(x2), cy2=toCanvasY(y2);
+  const cx3=toCanvasX(x3), cy3=toCanvasY(y3);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx1,cy1); ctx.lineTo(cx2,cy2); ctx.lineTo(cx3,cy3); ctx.closePath();
+  ctx.fillStyle = `rgba(${hexToRgb(part.color)}, ${alpha * 0.45})`;
+  ctx.fill();
+  ctx.strokeStyle = part.color;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  if (alpha > 0.5) {
+    const lx=(cx1+cx2+cx3)/3, ly=(cy1+cy2+cy3)/3;
+    ctx.fillStyle = part.color;
+    ctx.font = `bold ${Math.max(14, Math.min(20, SCALE*0.4))}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.shadowColor='rgba(0,0,0,0.8)'; ctx.shadowBlur=6;
+    ctx.fillText(part.id, lx, ly);
+    ctx.shadowBlur=0;
+  }
+  ctx.restore();
+}
+
+function drawComponentSemicircle(part, alpha) {
+  const {cx,cy,r,startAngle,endAngle,anticlockwise} = part.semicircle;
+  const ccx=toCanvasX(cx), ccy=toCanvasY(cy), cr=r*SCALE;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(ccx, ccy, cr, startAngle, endAngle, anticlockwise);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(${hexToRgb(part.color)}, ${alpha * 0.45})`;
+  ctx.fill();
+  ctx.strokeStyle = part.color;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  if (alpha > 0.5) {
+    const lx = part.centroid ? toCanvasX(part.centroid.x) : ccx;
+    const ly = part.centroid ? toCanvasY(part.centroid.y) : ccy - cr*0.5;
+    ctx.fillStyle = part.color;
+    ctx.font = `bold ${Math.max(14, Math.min(20, SCALE*0.4))}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.shadowColor='rgba(0,0,0,0.8)'; ctx.shadowBlur=6;
+    ctx.fillText(part.id, lx, ly);
+    ctx.shadowBlur=0;
+  }
   ctx.restore();
 }
 
@@ -1205,22 +1383,29 @@ function drawAnnotations(shape) {
     const mx = (x1+x2)/2, my = (y1+y2)/2;
 
     let ox = 0, oy = 0;
-    if (ann.dir === 'up')    oy = -OFFSET_PX;
-    if (ann.dir === 'down')  oy =  OFFSET_PX;
-    if (ann.dir === 'left')  ox = -OFFSET_PX;
-    if (ann.dir === 'right') ox =  OFFSET_PX;
+    if (ann.offx !== undefined) {
+      ox = ann.offx; oy = ann.offy || 0;
+    } else {
+      if (ann.dir === 'up')    oy = -OFFSET_PX;
+      if (ann.dir === 'down')  oy =  OFFSET_PX;
+      if (ann.dir === 'left')  ox = -OFFSET_PX;
+      if (ann.dir === 'right') ox =  OFFSET_PX;
+    }
 
     // Tick line offset from edge
     const lx1 = x1 + ox * 0.5, ly1 = y1 + oy * 0.5;
     const lx2 = x2 + ox * 0.5, ly2 = y2 + oy * 0.5;
 
-    // Tick marks at ends
-    ctx.strokeStyle = 'rgba(200,200,255,0.5)';
-    ctx.lineWidth = 1.5;
-    // Perpendicular ticks
+    // Perpendicular ticks (works for any line angle)
     const tickLen = 5;
-    const px = (ann.dir === 'up' || ann.dir === 'down') ? tickLen : 0;
-    const py = (ann.dir === 'left' || ann.dir === 'right') ? tickLen : 0;
+    const adx = x2 - x1, ady = y2 - y1;
+    const alen = Math.sqrt(adx*adx + ady*ady) || 1;
+    const px = -ady / alen * tickLen;
+    const py =  adx / alen * tickLen;
+
+    ctx.strokeStyle = ann.interior ? 'rgba(200,200,255,0.2)' : 'rgba(200,200,255,0.5)';
+    if (ann.interior) ctx.setLineDash([4,4]);
+    ctx.lineWidth = 1.5;
 
     ctx.beginPath();
     ctx.moveTo(lx1 - px, ly1 - py); ctx.lineTo(lx1 + px, ly1 + py); ctx.stroke();
@@ -1228,6 +1413,7 @@ function drawAnnotations(shape) {
     ctx.moveTo(lx2 - px, ly2 - py); ctx.lineTo(lx2 + px, ly2 + py); ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(lx1, ly1); ctx.lineTo(lx2, ly2); ctx.stroke();
+    if (ann.interior) ctx.setLineDash([]);
 
     // Label background pill
     const lbl = String(ann.label);
@@ -1249,11 +1435,7 @@ function drawAnnotations(shape) {
 function drawOutlineOnly(shape) {
   ctx.save();
   ctx.beginPath();
-  shape.vertices.forEach(([gx,gy], i) => {
-    if (i===0) ctx.moveTo(toCanvasX(gx), toCanvasY(gy));
-    else        ctx.lineTo(toCanvasX(gx), toCanvasY(gy));
-  });
-  ctx.closePath();
+  buildShapePath(shape);
   ctx.strokeStyle = '#8080dd';
   ctx.lineWidth = 3;
   ctx.stroke();
@@ -1267,8 +1449,7 @@ function drawPerimeterTrace(shape, segIdx, progress) {
   for (let i = 0; i < segIdx; i++) {
     const s = segs[i];
     ctx.beginPath();
-    ctx.moveTo(toCanvasX(s.x1), toCanvasY(s.y1));
-    ctx.lineTo(toCanvasX(s.x2), toCanvasY(s.y2));
+    drawPerimeterSegmentPath(s);
     ctx.strokeStyle = s.color;
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
@@ -1277,11 +1458,20 @@ function drawPerimeterTrace(shape, segIdx, progress) {
   // Draw current segment partially
   if (segIdx < segs.length) {
     const s = segs[segIdx];
-    const ex = s.x1 + (s.x2 - s.x1) * progress;
-    const ey = s.y1 + (s.y2 - s.y1) * progress;
+    let dotX, dotY;
     ctx.beginPath();
-    ctx.moveTo(toCanvasX(s.x1), toCanvasY(s.y1));
-    ctx.lineTo(toCanvasX(ex), toCanvasY(ey));
+    if (s.type === 'arc') {
+      const angle = arcPartialAngle(s, progress);
+      ctx.arc(toCanvasX(s.cx), toCanvasY(s.cy), s.r * SCALE, s.startAngle, angle, s.anticlockwise);
+      dotX = toCanvasX(s.cx) + s.r * SCALE * Math.cos(angle);
+      dotY = toCanvasY(s.cy) + s.r * SCALE * Math.sin(angle);
+    } else {
+      const ex = s.x1 + (s.x2 - s.x1) * progress;
+      const ey = s.y1 + (s.y2 - s.y1) * progress;
+      ctx.moveTo(toCanvasX(s.x1), toCanvasY(s.y1));
+      ctx.lineTo(toCanvasX(ex), toCanvasY(ey));
+      dotX = toCanvasX(ex); dotY = toCanvasY(ey);
+    }
     ctx.strokeStyle = s.color;
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
@@ -1289,14 +1479,35 @@ function drawPerimeterTrace(shape, segIdx, progress) {
     // Moving dot
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(toCanvasX(ex), toCanvasY(ey), 7, 0, Math.PI*2);
+    ctx.arc(dotX, dotY, 7, 0, Math.PI*2);
     ctx.fill();
     ctx.fillStyle = s.color;
     ctx.beginPath();
-    ctx.arc(toCanvasX(ex), toCanvasY(ey), 5, 0, Math.PI*2);
+    ctx.arc(dotX, dotY, 5, 0, Math.PI*2);
     ctx.fill();
   }
   ctx.restore();
+}
+
+function drawPerimeterSegmentPath(s) {
+  if (s.type === 'arc') {
+    ctx.arc(toCanvasX(s.cx), toCanvasY(s.cy), s.r * SCALE, s.startAngle, s.endAngle, s.anticlockwise);
+  } else {
+    ctx.moveTo(toCanvasX(s.x1), toCanvasY(s.y1));
+    ctx.lineTo(toCanvasX(s.x2), toCanvasY(s.y2));
+  }
+}
+
+function arcPartialAngle(s, progress) {
+  const {startAngle, endAngle, anticlockwise} = s;
+  let sweep;
+  if (!anticlockwise) {
+    sweep = endAngle >= startAngle ? endAngle - startAngle : (2*Math.PI - startAngle) + endAngle;
+    return startAngle + sweep * progress;
+  } else {
+    sweep = endAngle <= startAngle ? startAngle - endAngle : startAngle + (2*Math.PI - endAngle);
+    return startAngle - sweep * progress;
+  }
 }
 
 function renderCanvas() {
@@ -1319,7 +1530,7 @@ function renderCanvas() {
       // step=1 → show parts[0], step=2 → parts[0..1], etc.
       const partsToShow = step; // 1-indexed: show parts[0..step-1]
       for (let i = 0; i < Math.min(partsToShow, parts.length); i++) {
-        drawComponentRect(parts[i], 1);
+        drawComponentPart(parts[i], 1);
       }
       // Pulse glow on the most-recently revealed part
       const activeIdx = step - 1;
@@ -1329,7 +1540,7 @@ function renderCanvas() {
         ctx.save();
         ctx.shadowColor = parts[activeIdx].color;
         ctx.shadowBlur  = glow;
-        drawComponentRect(parts[activeIdx], 1);
+        drawComponentPart(parts[activeIdx], 1);
         ctx.shadowBlur = 0;
         ctx.restore();
       }
@@ -1349,8 +1560,7 @@ function renderCanvas() {
       for (let i = 0; i < Math.min(completedSegs, seg.length); i++) {
         ctx.save();
         ctx.beginPath();
-        ctx.moveTo(toCanvasX(seg[i].x1), toCanvasY(seg[i].y1));
-        ctx.lineTo(toCanvasX(seg[i].x2), toCanvasY(seg[i].y2));
+        drawPerimeterSegmentPath(seg[i]);
         ctx.strokeStyle = seg[i].color;
         ctx.lineWidth = 7;
         ctx.lineCap = 'round';
@@ -1554,15 +1764,19 @@ function renderStepCard(stepIdx) {
     const seg = step.seg;
     const col = seg.color;
     const allSegs = step.shape.perimeter.segments;
-    const runningTotal = allSegs.slice(0, step.segIdx + 1).reduce((s, g) => s + g.len, 0);
+    const runningTotal = Math.round(allSegs.slice(0, step.segIdx + 1).reduce((s, g) => s + g.len, 0) * 10) / 10;
+    const isArc = seg.type === 'arc';
+    const segTitle = isArc ? `🌀 Arc ${step.segIdx + 1} of ${allSegs.length}` : `📏 Side ${step.segIdx + 1} of ${allSegs.length}`;
+    const arcFormula = isArc ? `<div class="formula-pill">Arc Length = π × r = 3.14 × ${seg.r} ≈ ${seg.len}</div>` : '';
 
     card.innerHTML = `
       <div class="step-card-header">
         <div class="step-num" style="background:${col};color:#0d0d1f">${stepIdx + 1}</div>
-        <div class="step-title">📏 Side ${step.segIdx + 1} of ${allSegs.length}</div>
+        <div class="step-title">${segTitle}</div>
       </div>
       <div class="step-body">
-        <div class="calc-line">Length = <span style="color:${col};font-weight:700">${seg.len} units</span></div>
+        ${arcFormula}
+        <div class="calc-line">Length ≈ <span style="color:${col};font-weight:700">${seg.len} units</span></div>
         <div style="margin-top:6px;font-size:0.8rem;color:var(--muted)">
           Running total: ${allSegs.slice(0,step.segIdx+1).map(g=>g.len).join(' + ')} = <strong style="color:var(--teal)">${runningTotal} units</strong>
         </div>
