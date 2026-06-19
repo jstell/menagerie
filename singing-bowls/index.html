@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Singing Bowls</title>
+<link rel="stylesheet" href="style.css?v=b881557" />
+</head>
+<body>
+  <canvas id="stage"></canvas>
+
+  <header id="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="title">Singing&nbsp;Bowls</span>
+    </div>
+
+    <div class="materials" id="materials" role="radiogroup" aria-label="Bowl material">
+      <button class="swatch" data-material="metal"   style="--sw:#caa05a" title="Himalayan metal"><span></span>Metal</button>
+      <button class="swatch" data-material="crystal" style="--sw:#cbb6e8" title="Crystal / quartz"><span></span>Crystal</button>
+      <button class="swatch" data-material="glass"   style="--sw:#8fd8e6" title="Glass"><span></span>Glass</button>
+      <button class="swatch" data-material="ceramic" style="--sw:#d8b79a" title="Ceramic"><span></span>Ceramic</button>
+    </div>
+
+    <div class="right">
+      <div class="octave" title="Octave (bowl size / pitch)">
+        <button id="oct-down" aria-label="Lower octave">&minus;</button>
+        <span id="oct-readout">C4</span>
+        <button id="oct-up" aria-label="Raise octave">+</button>
+      </div>
+      <label class="vol" title="Volume">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a4 4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume" />
+      </label>
+      <button id="help-btn" class="help" aria-label="How to play">?</button>
+    </div>
+  </header>
+
+  <div id="scenes" class="scenes" role="radiogroup" aria-label="Background scene">
+    <button class="scene active" data-scene="dusk"   title="Dusk"><span style="background:radial-gradient(circle at 40% 35%,#2a2350,#0b0a1c)"></span></button>
+    <button class="scene" data-scene="aurora" title="Aurora"><span style="background:radial-gradient(circle at 40% 35%,#1c6e5a,#0a1424)"></span></button>
+    <button class="scene" data-scene="ocean"  title="Ocean deep"><span style="background:radial-gradient(circle at 40% 35%,#1b5a86,#05101f)"></span></button>
+    <button class="scene" data-scene="cosmos" title="Cosmos"><span style="background:radial-gradient(circle at 40% 35%,#3a2a66,#04040c)"></span></button>
+  </div>
+
+  <div id="hint" class="hint">
+    <p>Drag in <b>circles around a rim</b> to make it sing · <b>click</b> to strike · <b>flick</b> for a bright tap</p>
+  </div>
+
+  <div id="help" class="help-panel" hidden>
+    <div class="card">
+      <h2>Playing the bowls</h2>
+      <ul>
+        <li><b>Sing</b> — press a bowl and drag round and round the rim, like a wet finger on a wineglass. Circle faster to swell louder; stop circling to let it ring out.</li>
+        <li><b>Strike</b> — a quick click taps the bowl for a bell-like tone.</li>
+        <li><b>Flick</b> — a fast little swipe across the rim gives a brighter, shorter attack.</li>
+        <li><b>Material</b> — switch metal / crystal / glass / ceramic up top; each rings differently.</li>
+        <li>Bigger bowls on the left sound lower. Play several at once.</li>
+      </ul>
+      <p class="phys">Each bowl is synthesized live from its inharmonic vibration modes, with two slightly-detuned voices per mode for the gentle beating shimmer real bowls have.</p>
+      <button id="help-close">Got it</button>
+    </div>
+  </div>
+
+  <div id="tap-to-start" class="tap-start">
+    <div class="ts-inner">
+      <div class="ts-ring"></div>
+      <p>tap to begin</p>
+    </div>
+  </div>
+
+  <script src="app.js?v=b881557"></script>
+</body>
+</html>
