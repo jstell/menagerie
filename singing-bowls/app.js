@@ -503,17 +503,17 @@ const Ambience = {
  *  filtered noise; `soft` rounds the attack for mellow instruments.
  * ============================================================= */
 const WOOD_SPECS = {
-  mokugyo: { f: 384, drop: 0.05, parts: [
+  mokugyo: { f: 384, drop: 0.05, amp: 1.7, parts: [
     { r: 1, g: 0.9, d: 0.20 }, { r: 1.83, g: 0.5, d: 0.11 }, { r: 2.66, g: 0.28, d: 0.07 }],
     nz: { f: 1250, q: 1.4, g: 0.5, d: 0.035 } },
-  log: { f: 88, drop: 0.045, parts: [
+  log: { f: 88, drop: 0.045, amp: 1.8, parts: [
     { r: 1, g: 1, d: 1.2 }, { r: 1.62, g: 0.4, d: 0.55 }, { r: 2.43, g: 0.2, d: 0.28 }],
     nz: { f: 320, q: 1, g: 0.5, d: 0.06 } },
 };
 const chimeSpec = (f) => ({ f, drop: 0.01, parts: [
   { r: 1, g: 0.7, d: 0.5 }, { r: 2.87, g: 0.22, d: 0.16 }],
   nz: { f: f * 2.2, q: 2, g: 0.22, d: 0.02 } });
-const tongueSpec = (f) => ({ f, soft: true, drop: 0.015, parts: [
+const tongueSpec = (f) => ({ f, soft: true, drop: 0.015, amp: 1.6, parts: [
   { r: 1, g: 0.9, d: 1.0 }, { r: 2.92, g: 0.18, d: 0.3 }, { r: 4.3, g: 0.06, d: 0.14 }],
   nz: { f: 520, q: 1, g: 0.16, d: 0.045 } });
 
@@ -604,7 +604,7 @@ const Wood = {
     if (!audio) return;
     const ctx = audio.ctx, t = ctx.currentTime;
     const out = ctx.createGain();
-    out.gain.value = 1;
+    out.gain.value = spec.amp || 1;
     audio.busConnect(out);
     let maxD = spec.nz.d;
     spec.parts.forEach((p) => {
