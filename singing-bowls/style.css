@@ -179,6 +179,28 @@ html, body {
   background: #cbbef0; cursor: pointer;
 }
 
+/* topbar toggles: auto-play + ambience */
+.tgl {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--stroke);
+  background: var(--glass);
+  color: var(--muted);
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: color .2s, border-color .2s, box-shadow .2s;
+}
+.tgl svg { width: 17px; height: 17px; fill: currentColor; }
+.tgl:hover { color: var(--ink); }
+.tgl.active {
+  color: #e7defc;
+  border-color: rgba(190,170,255,0.75);
+  box-shadow: 0 0 16px -4px rgba(170,140,255,0.9);
+}
+.tgl.off { opacity: 0.42; }
+
 .help {
   width: 30px; height: 30px;
   border-radius: 50%;
@@ -270,6 +292,13 @@ html, body {
 @keyframes pulse {
   0%, 100% { transform: scale(1); opacity: 0.65; }
   50% { transform: scale(1.12); opacity: 1; }
+}
+
+@media (max-width: 800px) {
+  .vol { display: none; }
+  .brand { display: none; }
+  .right { gap: 9px; }
+  #topbar { gap: 12px; }
 }
 
 @media (max-width: 640px) {

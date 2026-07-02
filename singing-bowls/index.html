@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Singing Bowls</title>
-<link rel="stylesheet" href="style.css?v=b881557" />
+<link rel="stylesheet" href="style.css?v=7710215" />
 </head>
 <body>
   <canvas id="stage"></canvas>
@@ -28,6 +28,15 @@
         <span id="oct-readout">C4</span>
         <button id="oct-up" aria-label="Raise octave">+</button>
       </div>
+      <button id="auto-btn" class="tgl" title="Auto-play — let the bowls play themselves" aria-label="Toggle auto-play">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5-10-6.5z"/></svg>
+      </button>
+      <button id="amb-btn" class="tgl" title="Ambient soundscape" aria-label="Toggle ambient soundscape">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M3 9c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 3-2"/>
+          <path d="M3 15c2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2 2.5-2 3-2"/>
+        </svg>
+      </button>
       <label class="vol" title="Volume">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a4 4 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
         <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Master volume" />
@@ -56,6 +65,9 @@
         <li><b>Flick</b> — a fast little swipe across the rim gives a brighter, shorter attack.</li>
         <li><b>Material</b> — switch metal / crystal / glass / ceramic up top; each rings differently.</li>
         <li>Bigger bowls on the left sound lower. Play several at once.</li>
+        <li><b>Wooden friend</b> — each scene keeps one wooden instrument at the lower right (temple fish, bamboo chimes, tongue drum, log drum). Tap it; drag across the chimes to strum.</li>
+        <li><b>Auto-play</b> — the play button up top lets the bowls play themselves, slow and meditative.</li>
+        <li><b>Ambience</b> — the wave button toggles each scene's background soundscape; scenes also change the reverb around the bowls.</li>
       </ul>
       <p class="phys">Each bowl is synthesized live from its inharmonic vibration modes, with two slightly-detuned voices per mode for the gentle beating shimmer real bowls have.</p>
       <button id="help-close">Got it</button>
@@ -69,6 +81,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=b881557"></script>
+  <script src="app.js?v=7710215"></script>
 </body>
 </html>

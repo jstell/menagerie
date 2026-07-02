@@ -133,8 +133,19 @@ class AudioEngine {
     this.comp.connect(this.master);
     this.master.connect(this.ctx.destination);
 
+    // ambience bed bypasses the compressor so bowl strikes never pump it
+    this.amb = this.ctx.createGain();
+    this.amb.gain.value = 1;
+    this.amb.connect(this.master);
+
     // shared white-noise buffer for stick-slip friction
     this.noiseBuffer = this._makeNoise(2.0);
+  }
+
+  // swap the acoustic space (impulse + wet level) to match the scene
+  setSpace(spec) {
+    this.reverb.buffer = this._makeImpulse(spec.sec, spec.dec);
+    this.wet.gain.setTargetAtTime(spec.wet, this.ctx.currentTime, 0.8);
   }
 
   busConnect(node) {
@@ -313,6 +324,524 @@ class BowlVoice {
 }
 
 /* ============================================================= *
+ *  SCENE SOUNDSCAPES
+ *  Each scene gets a synthesized ambient bed and its own acoustic
+ *  space. Beds cross-fade on scene change; a topbar toggle mutes.
+ * ============================================================= */
+const SCENE_AUDIO = {
+  dusk:   { verb: { sec: 3.2, dec: 2.6, wet: 0.30 } },  // intimate evening air
+  aurora: { verb: { sec: 4.6, dec: 2.4, wet: 0.36 } },  // open sky
+  ocean:  { verb: { sec: 5.5, dec: 2.2, wet: 0.40 } },  // deep water
+  cosmos: { verb: { sec: 7.5, dec: 2.0, wet: 0.46 } },  // vast hall
+};
+
+const Ambience = {
+  enabled: true,
+  level: 0.5,          // bed gain inside the ambience bus
+  current: null,       // {gain, nodes[], timers[]}
+
+  setScene(key) {
+    if (!audio) return;
+    this._fadeOut(this.current);
+    this.current = this._build(key);
+  },
+
+  toggle() {
+    this.enabled = !this.enabled;
+    document.getElementById("amb-btn")?.classList.toggle("off", !this.enabled);
+    if (audio) {
+      audio.amb.gain.setTargetAtTime(this.enabled ? 1 : 0, audio.ctx.currentTime, 0.6);
+    }
+  },
+
+  _fadeOut(layer) {
+    if (!layer) return;
+    const t = audio.ctx.currentTime;
+    layer.gain.gain.setTargetAtTime(0, t, 0.7);
+    layer.timers.forEach(clearTimeout);
+    setTimeout(() => {
+      layer.nodes.forEach((n) => { try { n.stop?.(); n.disconnect(); } catch (e) {} });
+      try { layer.gain.disconnect(); } catch (e) {}
+    }, 2600);
+  },
+
+  _build(key) {
+    const ctx = audio.ctx;
+    const layer = { gain: ctx.createGain(), nodes: [], timers: [] };
+    layer.gain.gain.value = 0;
+    layer.gain.connect(audio.amb);
+    layer.gain.gain.setTargetAtTime(this.level, ctx.currentTime, 1.4);
+
+    const N = layer.nodes;
+    const noiseSrc = () => {
+      const n = ctx.createBufferSource();
+      n.buffer = audio.noiseBuffer; n.loop = true; n.start();
+      N.push(n);
+      return n;
+    };
+    const lfo = (freq, depth, param) => {
+      const o = ctx.createOscillator();
+      o.frequency.value = freq;
+      const g = ctx.createGain();
+      g.gain.value = depth;
+      o.connect(g); g.connect(param); o.start();
+      N.push(o, g);
+    };
+
+    if (key === "dusk") {
+      // warm low wind, slowly breathing
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass"; lp.frequency.value = 240; lp.Q.value = 0.4;
+      const g = ctx.createGain(); g.gain.value = 0.14;
+      noiseSrc().connect(lp); lp.connect(g); g.connect(layer.gain);
+      lfo(0.06, 0.07, g.gain);
+      lfo(0.045, 90, lp.frequency);
+      N.push(lp, g);
+
+      // two crickets with independent random chirp schedules
+      for (let v = 0; v < 2; v++) {
+        const osc = ctx.createOscillator();
+        osc.frequency.value = 4100 + Math.random() * 600;
+        const trem = ctx.createOscillator();
+        trem.frequency.value = 26 + Math.random() * 14;
+        const tremG = ctx.createGain(); tremG.gain.value = 0.5;
+        const am = ctx.createGain(); am.gain.value = 0;      // chirp envelope × tremolo
+        trem.connect(tremG); tremG.connect(am.gain);
+        const out = ctx.createGain(); out.gain.value = 0.016;
+        osc.connect(am); am.connect(out); out.connect(layer.gain);
+        osc.start(); trem.start();
+        N.push(osc, trem, tremG, am, out);
+        const chirp = () => {
+          const t = ctx.currentTime, dur = 0.35 + Math.random() * 0.6;
+          am.gain.cancelScheduledValues(t);
+          am.gain.setValueAtTime(0, t);
+          am.gain.linearRampToValueAtTime(0.5, t + 0.05);
+          am.gain.setValueAtTime(0.5, t + dur - 0.08);
+          am.gain.linearRampToValueAtTime(0, t + dur);
+          layer.timers.push(setTimeout(chirp, 900 + Math.random() * 3200));
+        };
+        layer.timers.push(setTimeout(chirp, 400 + Math.random() * 2000));
+      }
+    }
+
+    if (key === "aurora") {
+      // airy high shimmer
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass"; hp.frequency.value = 5200;
+      const hg = ctx.createGain(); hg.gain.value = 0.012;
+      noiseSrc().connect(hp); hp.connect(hg); hg.connect(layer.gain);
+      lfo(0.05, 0.007, hg.gain);
+      N.push(hp, hg);
+
+      // slow breathing pad on high fifths (C–G–D), each with its own cycle
+      [1046.5, 1568, 2349.3].forEach((f, i) => {
+        const o = ctx.createOscillator();
+        o.frequency.value = f * (1 + (Math.random() - 0.5) * 0.002);
+        const g = ctx.createGain(); g.gain.value = 0.008;
+        o.connect(g); g.connect(layer.gain); o.start();
+        lfo(0.05 + i * 0.023, 0.007, g.gain);
+        N.push(o, g);
+      });
+
+      // occasional wind gusts
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass"; bp.frequency.value = 600; bp.Q.value = 0.5;
+      const wg = ctx.createGain(); wg.gain.value = 0.02;
+      noiseSrc().connect(bp); bp.connect(wg); wg.connect(layer.gain);
+      lfo(0.03, 0.018, wg.gain);
+      lfo(0.021, 260, bp.frequency);
+      N.push(bp, wg);
+    }
+
+    if (key === "ocean") {
+      // two overlapping wave layers: gain and cutoff ride slow LFOs
+      [{ lf: 0.085, base: 420 }, { lf: 0.062, base: 300 }].forEach(({ lf, base }) => {
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass"; lp.frequency.value = base; lp.Q.value = 0.6;
+        const g = ctx.createGain(); g.gain.value = 0.10;
+        noiseSrc().connect(lp); lp.connect(g); g.connect(layer.gain);
+        lfo(lf, 0.09, g.gain);
+        lfo(lf, base * 0.8, lp.frequency);
+        N.push(lp, g);
+      });
+      // sub rumble
+      const sub = ctx.createOscillator();
+      sub.type = "sine"; sub.frequency.value = 48;
+      const sg = ctx.createGain(); sg.gain.value = 0.03;
+      sub.connect(sg); sg.connect(layer.gain); sub.start();
+      lfo(0.07, 0.02, sg.gain);
+      N.push(sub, sg);
+    }
+
+    if (key === "cosmos") {
+      // deep detuned drone with a whisper of a fifth
+      [[55, 0.045], [55.28, 0.045], [82.41, 0.015]].forEach(([f, amp]) => {
+        const o = ctx.createOscillator();
+        o.frequency.value = f;
+        const g = ctx.createGain(); g.gain.value = amp;
+        o.connect(g); g.connect(layer.gain); o.start();
+        N.push(o, g);
+      });
+      // very slow spectral sweep across soft noise
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass"; bp.frequency.value = 500; bp.Q.value = 1.2;
+      const ng = ctx.createGain(); ng.gain.value = 0.014;
+      noiseSrc().connect(bp); bp.connect(ng); ng.connect(layer.gain);
+      lfo(0.013, 380, bp.frequency);
+      lfo(0.019, 0.008, ng.gain);
+      N.push(bp, ng);
+    }
+
+    return layer;
+  },
+};
+
+/* ============================================================= *
+ *  WOODEN COMPANIONS
+ *  One woody-toned instrument per scene, drawn at the lower right.
+ *  Wood = a few strongly-damped inharmonic partials + a knock of
+ *  filtered noise; `soft` rounds the attack for mellow instruments.
+ * ============================================================= */
+const WOOD_SPECS = {
+  mokugyo: { f: 384, drop: 0.05, parts: [
+    { r: 1, g: 0.9, d: 0.20 }, { r: 1.83, g: 0.5, d: 0.11 }, { r: 2.66, g: 0.28, d: 0.07 }],
+    nz: { f: 1250, q: 1.4, g: 0.5, d: 0.035 } },
+  log: { f: 88, drop: 0.045, parts: [
+    { r: 1, g: 1, d: 1.2 }, { r: 1.62, g: 0.4, d: 0.55 }, { r: 2.43, g: 0.2, d: 0.28 }],
+    nz: { f: 320, q: 1, g: 0.5, d: 0.06 } },
+};
+const chimeSpec = (f) => ({ f, drop: 0.01, parts: [
+  { r: 1, g: 0.7, d: 0.5 }, { r: 2.87, g: 0.22, d: 0.16 }],
+  nz: { f: f * 2.2, q: 2, g: 0.22, d: 0.02 } });
+const tongueSpec = (f) => ({ f, soft: true, drop: 0.015, parts: [
+  { r: 1, g: 0.9, d: 1.0 }, { r: 2.92, g: 0.18, d: 0.3 }, { r: 4.3, g: 0.06, d: 0.14 }],
+  nz: { f: 520, q: 1, g: 0.16, d: 0.045 } });
+
+const CHIME_FREQS = [523.25, 587.33, 659.25, 783.99, 880];
+const TONGUE_FREQS = [146.83, 196, 220];
+
+const Wood = {
+  key: "dusk",
+  x: 0, y: 0, s: 80,     // anchor (center x, floor y) and scale
+  anim: 0,               // hit flash 0..1
+  tubes: Array.from({ length: 5 }, () => ({ swing: 0, vel: 0 })),
+  flash: [0, 0, 0],      // per-tongue flash for the tongue drum
+
+  setScene(key) { this.key = key; this.anim = 0; this.layout(); },
+
+  layout() {
+    this.s = Math.max(52, Math.min(Math.min(W, H) * 0.11, 96));
+    this.x = W - Math.min(W * 0.06, 70) - this.s * 1.15;
+    this.y = H - this.s * 0.55 - 16;
+    this.topY = 64 + this.s * 0.2;   // chimes hang from the sky, clear of the bowls
+  },
+
+  hitTest(x, y) {
+    const s = this.s;
+    if (this.key === "aurora") {
+      return Math.abs(x - this.x) < s * 0.95 && y > this.topY - s * 0.2 && y < this.topY + s * 2.2;
+    }
+    return Math.abs(x - this.x) < s * 1.15 && y > this.y - s * 1.4 && y < this.y + s * 0.55;
+  },
+
+  play(px, level = 0.9) {
+    dismissHint();
+    if (this.key === "dusk") {
+      this._hit(WOOD_SPECS.mokugyo, level);
+      this.anim = 1;
+    } else if (this.key === "aurora") {
+      this.strumAt(px, level);
+    } else if (this.key === "ocean") {
+      const i = this._tongueAt(px);
+      this._hit(tongueSpec(TONGUE_FREQS[i]), level);
+      this.flash[i] = 1;
+    } else {
+      this._hit(WOOD_SPECS.log, level);
+      this.anim = 1;
+    }
+  },
+
+  // chimes: strike the tube nearest px (used for taps and drag-strums)
+  strumAt(px, level = 0.8) {
+    const i = this._tubeAt(px);
+    this._hit(chimeSpec(CHIME_FREQS[i]), level);
+    this.tubes[i].vel += 0.045 + level * 0.03;
+    this.anim = Math.max(this.anim, 0.7);
+    return i;
+  },
+
+  _tubeAt(px) {
+    const rel = (px - this.x) / (this.s * 0.32) + 2;
+    return Math.max(0, Math.min(4, Math.round(rel)));
+  },
+
+  _tongueAt(px) {
+    const rel = (px - this.x) / (this.s * 0.62) + 1;
+    return Math.max(0, Math.min(2, Math.round(rel)));
+  },
+
+  // gentle scene-appropriate punctuation for auto-play
+  autoHit() {
+    if (!audio) return;
+    const lvl = 0.35 + Math.random() * 0.3;
+    if (this.key === "dusk") {
+      this.play(this.x, lvl);
+      if (Math.random() < 0.5) setTimeout(() => this.play(this.x, lvl * 0.8), 170);
+    } else if (this.key === "aurora") {
+      let n = 2 + Math.floor(Math.random() * 3), t = 0;
+      for (let k = 0; k < n; k++) {
+        t += 90 + Math.random() * 170;
+        setTimeout(() => this.strumAt(this.x + (Math.random() - 0.5) * this.s * 1.6, lvl), t);
+      }
+    } else if (this.key === "ocean") {
+      this.play(this.x + (Math.floor(Math.random() * 3) - 1) * this.s * 0.62, lvl);
+    } else {
+      this.play(this.x, lvl + 0.1);
+    }
+  },
+
+  _hit(spec, level) {
+    if (!audio) return;
+    const ctx = audio.ctx, t = ctx.currentTime;
+    const out = ctx.createGain();
+    out.gain.value = 1;
+    audio.busConnect(out);
+    let maxD = spec.nz.d;
+    spec.parts.forEach((p) => {
+      maxD = Math.max(maxD, p.d);
+      const o = ctx.createOscillator();
+      const f = spec.f * p.r;
+      o.frequency.setValueAtTime(f * (1 + (spec.drop || 0)), t);
+      o.frequency.exponentialRampToValueAtTime(f, t + 0.06);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(level * p.g * 0.5, t + (spec.soft ? 0.012 : 0.003));
+      g.gain.exponentialRampToValueAtTime(0.0004, t + Math.max(0.05, p.d));
+      o.connect(g); g.connect(out);
+      o.start(t); o.stop(t + p.d + 0.1);
+      o.onended = () => { o.disconnect(); g.disconnect(); };
+    });
+    const n = ctx.createBufferSource();
+    n.buffer = audio.noiseBuffer;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass"; bp.frequency.value = spec.nz.f; bp.Q.value = spec.nz.q;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(level * spec.nz.g, t);
+    ng.gain.exponentialRampToValueAtTime(0.0004, t + spec.nz.d);
+    n.connect(bp); bp.connect(ng); ng.connect(out);
+    n.start(t); n.stop(t + spec.nz.d + 0.05);
+    n.onended = () => { n.disconnect(); bp.disconnect(); ng.disconnect(); };
+    setTimeout(() => { try { out.disconnect(); } catch (e) {} }, (maxD + 0.4) * 1000);
+  },
+
+  draw(time) {
+    this.anim *= 0.93;
+    const { x, y, s } = this;
+    ctx2d.save();
+    if (this.key === "dusk") this._drawMokugyo(x, y, s);
+    else if (this.key === "aurora") this._drawChimes(x, y, s, time);
+    else if (this.key === "ocean") this._drawTongueDrum(x, y, s);
+    else this._drawLogDrum(x, y, s);
+    ctx2d.restore();
+  },
+
+  _glow(alpha) {
+    if (alpha < 0.02) return;
+    ctx2d.shadowColor = `rgba(255,215,150,${alpha})`;
+    ctx2d.shadowBlur = 26 * alpha + 8;
+  },
+
+  _drawMokugyo(x, y, s) {
+    const squash = 1 + this.anim * 0.05;
+    // cushion
+    let g = ctx2d.createRadialGradient(x, y, 2, x, y, s * 0.85);
+    g.addColorStop(0, "#8a6a30"); g.addColorStop(1, "#4a3416");
+    ctx2d.fillStyle = g;
+    ctx2d.beginPath();
+    ctx2d.ellipse(x, y + s * 0.06, s * 0.8, s * 0.24, 0, 0, Math.PI * 2);
+    ctx2d.fill();
+    // lacquered fish body
+    const by = y - s * 0.42;
+    this._glow(this.anim);
+    g = ctx2d.createRadialGradient(x - s * 0.2, by - s * 0.25, 2, x, by, s * 0.75);
+    g.addColorStop(0, "#d96a4a"); g.addColorStop(0.45, "#b03a28"); g.addColorStop(1, "#651c12");
+    ctx2d.fillStyle = g;
+    ctx2d.beginPath();
+    ctx2d.ellipse(x, by, s * 0.62 / squash, s * 0.5 * squash, 0, 0, Math.PI * 2);
+    ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+    // mouth slit
+    ctx2d.strokeStyle = "rgba(30,8,4,0.85)";
+    ctx2d.lineWidth = Math.max(2, s * 0.05);
+    ctx2d.lineCap = "round";
+    ctx2d.beginPath();
+    ctx2d.arc(x, by - s * 0.12, s * 0.48, Math.PI * 0.25, Math.PI * 0.75);
+    ctx2d.stroke();
+    // scale carving swirl
+    ctx2d.strokeStyle = "rgba(255,200,170,0.22)";
+    ctx2d.lineWidth = 1.4;
+    ctx2d.beginPath();
+    ctx2d.arc(x + s * 0.18, by - s * 0.1, s * 0.16, 0, Math.PI * 1.5);
+    ctx2d.stroke();
+    this._label(x, y + s * 0.42, "mokugyo");
+  },
+
+  _drawChimes(x, y, s, time) {
+    const topY = this.topY;
+    // hanging bar
+    const bg = ctx2d.createLinearGradient(x - s, topY, x + s, topY);
+    bg.addColorStop(0, "#6b4a2a"); bg.addColorStop(0.5, "#a97c48"); bg.addColorStop(1, "#5e4023");
+    ctx2d.fillStyle = bg;
+    ctx2d.beginPath();
+    ctx2d.roundRect(x - s * 0.85, topY - s * 0.07, s * 1.7, s * 0.14, s * 0.07);
+    ctx2d.fill();
+    // tubes
+    for (let i = 0; i < 5; i++) {
+      const tu = this.tubes[i];
+      // idle sway + hit swing, softly damped
+      tu.vel += -tu.swing * 0.02 + Math.sin(time * 0.0006 + i * 1.7) * 0.00012;
+      tu.swing += tu.vel;
+      tu.vel *= 0.975;
+      const px = x + (i - 2) * s * 0.32;
+      const len = s * (1.75 - i * 0.16);
+      ctx2d.save();
+      ctx2d.translate(px, topY + s * 0.07);
+      ctx2d.rotate(tu.swing);
+      // string
+      ctx2d.strokeStyle = "rgba(220,210,190,0.5)";
+      ctx2d.lineWidth = 1;
+      ctx2d.beginPath(); ctx2d.moveTo(0, 0); ctx2d.lineTo(0, s * 0.16); ctx2d.stroke();
+      // bamboo tube
+      this._glow(Math.min(0.8, Math.abs(tu.vel) * 22));
+      const tg = ctx2d.createLinearGradient(-s * 0.07, 0, s * 0.07, 0);
+      tg.addColorStop(0, "#8f7a40"); tg.addColorStop(0.4, "#cdb26a"); tg.addColorStop(1, "#7a6636");
+      ctx2d.fillStyle = tg;
+      ctx2d.beginPath();
+      ctx2d.roundRect(-s * 0.065, s * 0.16, s * 0.13, len, s * 0.06);
+      ctx2d.fill();
+      ctx2d.shadowBlur = 0;
+      // node ring
+      ctx2d.strokeStyle = "rgba(70,55,20,0.5)";
+      ctx2d.lineWidth = 1.2;
+      ctx2d.beginPath();
+      ctx2d.moveTo(-s * 0.065, s * 0.16 + len * 0.55);
+      ctx2d.lineTo(s * 0.065, s * 0.16 + len * 0.55);
+      ctx2d.stroke();
+      ctx2d.restore();
+    }
+    this._label(x, topY + s * 2.35, "bamboo chimes");
+  },
+
+  _drawTongueDrum(x, y, s) {
+    const topY = y - s * 0.62;
+    this._glow(this.anim * 0.6);
+    // side wall
+    const wg = ctx2d.createLinearGradient(x, topY, x, y + s * 0.1);
+    wg.addColorStop(0, "#7d6a54"); wg.addColorStop(1, "#453627");
+    ctx2d.fillStyle = wg;
+    ctx2d.beginPath();
+    ctx2d.moveTo(x - s * 0.98, topY);
+    ctx2d.lineTo(x - s * 0.98, y - s * 0.1);
+    ctx2d.ellipse(x, y - s * 0.1, s * 0.98, s * 0.3, 0, Math.PI, 0, true);
+    ctx2d.lineTo(x + s * 0.98, topY);
+    ctx2d.closePath();
+    ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+    // top face
+    const tg = ctx2d.createRadialGradient(x - s * 0.3, topY - s * 0.12, 2, x, topY, s * 1.1);
+    tg.addColorStop(0, "#a08a6c"); tg.addColorStop(1, "#6b5842");
+    ctx2d.fillStyle = tg;
+    ctx2d.beginPath();
+    ctx2d.ellipse(x, topY, s * 0.98, s * 0.33, 0, 0, Math.PI * 2);
+    ctx2d.fill();
+    // wood grain
+    ctx2d.strokeStyle = "rgba(60,45,30,0.25)";
+    ctx2d.lineWidth = 1;
+    for (let k = 0; k < 3; k++) {
+      ctx2d.beginPath();
+      ctx2d.ellipse(x, topY, s * (0.3 + k * 0.22), s * (0.1 + k * 0.075), 0, 0, Math.PI * 2);
+      ctx2d.stroke();
+    }
+    // three tongue slots, flashing when struck
+    for (let i = 0; i < 3; i++) {
+      this.flash[i] *= 0.92;
+      const tx = x + (i - 1) * s * 0.62;
+      ctx2d.strokeStyle = `rgba(25,16,8,0.9)`;
+      ctx2d.lineWidth = Math.max(2, s * 0.04);
+      ctx2d.lineCap = "round";
+      ctx2d.beginPath();
+      ctx2d.moveTo(tx - s * 0.13, topY - s * 0.12);
+      ctx2d.quadraticCurveTo(tx, topY + s * 0.16, tx + s * 0.13, topY - s * 0.12);
+      ctx2d.stroke();
+      if (this.flash[i] > 0.03) {
+        ctx2d.strokeStyle = `rgba(255,220,170,${this.flash[i] * 0.8})`;
+        ctx2d.lineWidth = 1.5;
+        ctx2d.stroke();
+      }
+    }
+    this._label(x, y + s * 0.42, "tongue drum");
+  },
+
+  _drawLogDrum(x, y, s) {
+    const cy = y - s * 0.42;
+    this._glow(this.anim);
+    // log body
+    const lg = ctx2d.createLinearGradient(x, cy - s * 0.3, x, cy + s * 0.3);
+    lg.addColorStop(0, "#7a5a38"); lg.addColorStop(0.45, "#5c422a"); lg.addColorStop(1, "#2f2013");
+    ctx2d.fillStyle = lg;
+    ctx2d.beginPath();
+    ctx2d.roundRect(x - s * 1.05, cy - s * 0.3, s * 2.1, s * 0.6, s * 0.3);
+    ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+    // end grain rings
+    const ex = x + s * 0.88;
+    const eg = ctx2d.createRadialGradient(ex, cy, 1, ex, cy, s * 0.3);
+    eg.addColorStop(0, "#c9a072"); eg.addColorStop(1, "#8a6640");
+    ctx2d.fillStyle = eg;
+    ctx2d.beginPath();
+    ctx2d.ellipse(ex, cy, s * 0.17, s * 0.29, 0, 0, Math.PI * 2);
+    ctx2d.fill();
+    ctx2d.strokeStyle = "rgba(90,60,30,0.6)";
+    ctx2d.lineWidth = 1;
+    for (let k = 1; k <= 2; k++) {
+      ctx2d.beginPath();
+      ctx2d.ellipse(ex, cy, s * 0.06 * k, s * 0.11 * k, 0, 0, Math.PI * 2);
+      ctx2d.stroke();
+    }
+    // slit with end holes
+    ctx2d.strokeStyle = "rgba(15,9,4,0.95)";
+    ctx2d.lineWidth = Math.max(2.5, s * 0.05);
+    ctx2d.lineCap = "round";
+    ctx2d.beginPath();
+    ctx2d.moveTo(x - s * 0.6, cy - s * 0.14);
+    ctx2d.lineTo(x + s * 0.5, cy - s * 0.14);
+    ctx2d.stroke();
+    ctx2d.fillStyle = "rgba(15,9,4,0.95)";
+    for (const hx of [x - s * 0.6, x + s * 0.5]) {
+      ctx2d.beginPath();
+      ctx2d.arc(hx, cy - s * 0.14, s * 0.055, 0, Math.PI * 2);
+      ctx2d.fill();
+    }
+    // feet
+    ctx2d.fillStyle = "#241708";
+    ctx2d.beginPath();
+    ctx2d.ellipse(x - s * 0.6, y - s * 0.06, s * 0.16, s * 0.07, 0, 0, Math.PI * 2);
+    ctx2d.ellipse(x + s * 0.6, y - s * 0.06, s * 0.16, s * 0.07, 0, 0, Math.PI * 2);
+    ctx2d.fill();
+    this._label(x, y + s * 0.42, "log drum");
+  },
+
+  _label(x, y, text) {
+    ctx2d.globalAlpha = 0.32;
+    ctx2d.fillStyle = "#e8ddc8";
+    ctx2d.font = `500 ${Math.max(10, this.s * 0.14)}px -apple-system, system-ui, sans-serif`;
+    ctx2d.textAlign = "center";
+    ctx2d.fillText(text, x, y);
+    ctx2d.globalAlpha = 1;
+  },
+};
+
+/* ============================================================= *
  *  VISUAL MODEL
  * ============================================================= */
 const canvas = document.getElementById("stage");
@@ -323,6 +852,127 @@ let currentMaterial = "metal";
 let octave = 0;       // semitone-octave offset applied to the whole set
 const OCT_MIN = -3, OCT_MAX = 1;
 const bowls = [];     // {note, baseFreq, freq, voice, cx, cy, rx, ry, depth, level, phase, particles[], trail[]}
+const ripples = [];   // expanding "visible sound" rings on the floor
+
+function exciteVisual(b, amt) {
+  b.level = Math.min(1.3, b.level + amt);
+}
+
+function spawnRipple(b, strength = 1) {
+  if (reduceMotion) return;
+  const body = MATERIALS[currentMaterial].body;
+  ripples.push({
+    x: b.cx, y: b.cy,
+    r: b.rx * 1.05, ratio: b.ry / b.rx,
+    max: b.rx * (2.4 + strength * 1.4),
+    speed: (0.9 + strength * 0.9) * (b.rx / 90),
+    color: body.rim,
+  });
+  if (ripples.length > 48) ripples.shift();
+}
+
+function drawRipples() {
+  if (!ripples.length) return;
+  ctx2d.save();
+  ctx2d.globalCompositeOperation = "lighter";
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const rp = ripples[i];
+    rp.r += rp.speed;
+    const life = 1 - (rp.r - rp.max * 0.38) / (rp.max * 0.62);
+    if (rp.r >= rp.max) { ripples.splice(i, 1); continue; }
+    const a = Math.max(0, Math.min(0.4, life * 0.4));
+    ctx2d.beginPath();
+    ctx2d.ellipse(rp.x, rp.y, rp.r, rp.r * rp.ratio, 0, 0, Math.PI * 2);
+    ctx2d.strokeStyle = hexA(rp.color, a);
+    ctx2d.lineWidth = 1.6;
+    ctx2d.stroke();
+  }
+  ctx2d.restore();
+}
+
+/* ============================================================= *
+ *  AUTO-PLAY — a generative performer for meditation mode
+ * ============================================================= */
+const AutoPlay = {
+  on: false,
+  nextT: 0,
+  swells: [],   // active rub swells {bowl, t0, rise, hold, fall, peak}
+  // favor the C-pentatonic degrees (C D E G A); F and B stay rare
+  weights: [1, 0.9, 0.9, 0.25, 1, 0.9, 0.18],
+  lastIdx: -1,
+
+  toggle() {
+    this.on = !this.on;
+    document.getElementById("auto-btn")?.classList.toggle("active", this.on);
+    if (this.on) {
+      dismissHint();
+      this.nextT = performance.now() + 500;
+    } else {
+      this.swells.forEach((s) => s.bowl.voice?.endRub());
+      this.swells.length = 0;
+    }
+  },
+
+  tick(now) {
+    if (this.on && audio && now >= this.nextT) {
+      this._event(now);
+      if (now >= this.nextT) this.nextT = now + 3500 + Math.random() * 5500;
+    }
+    this._runSwells(now);
+  },
+
+  _pick() {
+    let idx = 0;
+    for (let guard = 0; guard < 8; guard++) {
+      idx = Math.min(bowls.length - 1,
+        Math.floor(Math.pow(Math.random(), 1.35) * bowls.length)); // lean low/large
+      if (idx !== this.lastIdx && Math.random() < this.weights[idx]) break;
+    }
+    this.lastIdx = idx;
+    return bowls[idx];
+  },
+
+  _event(now) {
+    const roll = Math.random();
+    if (roll < 0.16) { Wood.autoHit(); return; }
+    const b = this._pick();
+    if (!b || !b.voice) return;
+    if (roll < 0.36) {
+      this.swells.push({
+        bowl: b, t0: now,
+        rise: 3200 + Math.random() * 1800,
+        hold: 2000 + Math.random() * 2500,
+        fall: 2600,
+        peak: 0.5 + Math.random() * 0.35,
+      });
+      this.nextT = now + 6500 + Math.random() * 6000; // give the swell room to breathe
+    } else {
+      const bright = Math.random() < 0.1;
+      const lvl = 0.35 + Math.random() * 0.35;
+      b.voice.strike(lvl, bright);
+      exciteVisual(b, lvl * 0.8);
+      spawnRipple(b, lvl);
+    }
+  },
+
+  _runSwells(now) {
+    for (let i = this.swells.length - 1; i >= 0; i--) {
+      const s = this.swells[i];
+      const t = now - s.t0;
+      let inten;
+      if (t < s.rise) inten = t / s.rise;
+      else if (t < s.rise + s.hold) inten = 1;
+      else inten = 1 - (t - s.rise - s.hold) / s.fall;
+      if (inten <= 0 || !s.bowl.voice) {
+        s.bowl.voice?.endRub();
+        this.swells.splice(i, 1);
+        continue;
+      }
+      s.bowl.voice.rub(inten * s.peak * 0.9);
+      if (Math.random() < 0.02 * inten) spawnRipple(s.bowl, inten * 0.7);
+    }
+  },
+};
 
 function layout() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -334,6 +984,7 @@ function layout() {
   canvas.style.height = H + "px";
   ctx2d.setTransform(DPR, 0, 0, DPR, 0, 0);
   positionBowls();
+  Wood.layout();
 }
 
 function positionBowls() {
@@ -409,8 +1060,13 @@ function lerp(a, b, t) { return a + (b - a) * t; }
 function drawBowl(b, time) {
   const mat = MATERIALS[currentMaterial];
   const body = mat.body;
-  const { cx, cy, rx, ry, depth } = b;
+  const { cx, cy, depth } = b;
   const lvl = b.level;
+  // elliptical vibration: rim breathes wider ⇄ flatter while ringing
+  const vib = (lvl > 0.015 && !reduceMotion)
+    ? 1 + Math.sin(time * 0.024 + b.phase * 7) * 0.007 * Math.min(1, lvl)
+    : 1;
+  const rx = b.rx * vib, ry = b.ry * (2 - vib);
 
   // ---- contact shadow ----
   ctx2d.save();
@@ -437,13 +1093,30 @@ function drawBowl(b, time) {
 
   const bodyGrad = ctx2d.createLinearGradient(cx - rx, cy, cx + rx, cy + depth);
   bodyGrad.addColorStop(0, shade(body.deep, 0.7));
-  bodyGrad.addColorStop(0.32, body.base);
-  bodyGrad.addColorStop(0.55, shade(body.base, 1.12));
-  bodyGrad.addColorStop(0.8, body.deep);
-  bodyGrad.addColorStop(1, shade(body.deep, 0.7));
+  bodyGrad.addColorStop(0.3, body.base);
+  bodyGrad.addColorStop(0.46, shade(body.base, 1.24));
+  bodyGrad.addColorStop(0.58, body.base);
+  bodyGrad.addColorStop(0.82, body.deep);
+  bodyGrad.addColorStop(1, shade(body.deep, 0.65));
   ctx2d.fillStyle = bodyGrad;
   if (body.translucent) ctx2d.globalAlpha = 1 - body.translucent * 0.35;
   ctx2d.fill();
+
+  // engraved bands ringing the body
+  ctx2d.globalAlpha = body.translucent ? 0.2 : 0.35;
+  for (const q of [0.3, 0.55]) {
+    const w = rx * (1 - 0.5 * Math.pow(q, 2.2));
+    ctx2d.beginPath();
+    ctx2d.ellipse(cx, cy + depth * q, w, ry * 0.8, 0, Math.PI * 0.08, Math.PI * 0.92);
+    ctx2d.strokeStyle = shade(body.deep, 0.55);
+    ctx2d.lineWidth = 1.3;
+    ctx2d.stroke();
+    ctx2d.beginPath();
+    ctx2d.ellipse(cx, cy + depth * q + 1.6, w, ry * 0.8, 0, Math.PI * 0.12, Math.PI * 0.88);
+    ctx2d.strokeStyle = hexA(body.rim, 0.35);
+    ctx2d.lineWidth = 0.8;
+    ctx2d.stroke();
+  }
 
   // vertical sheen band
   ctx2d.globalAlpha = (body.translucent ? 0.5 : 0.32);
@@ -624,6 +1297,9 @@ const Scenes = {
     document.querySelectorAll(".scene").forEach((s) =>
       s.classList.toggle("active", s.dataset.scene === theme));
     this.build();
+    if (audio) audio.setSpace(SCENE_AUDIO[theme].verb);
+    Ambience.setScene(theme);
+    Wood.setScene(theme);
   },
 
   build() {
@@ -640,16 +1316,51 @@ const Scenes = {
           hue: Math.random() < 0.3 ? 220 : 280,
         });
       }
+      this.shoot = null;
     }
     if (this.current === "aurora") {
-      this.blobs = [];
-      const hues = [150, 175, 200, 280, 310];
-      for (let i = 0; i < 5; i++) {
-        this.blobs.push({
-          x: (i + 0.5) / 5, hue: hues[i],
+      this.curtains = [];
+      const hues = [150, 170, 195, 285];
+      for (let i = 0; i < 4; i++) {
+        this.curtains.push({
+          hue: hues[i],
           ph: Math.random() * Math.PI * 2,
-          w: 0.16 + Math.random() * 0.14,
-          sp: 0.6 + Math.random() * 0.8,
+          sp: 0.5 + Math.random() * 0.7,
+          amp: 0.04 + Math.random() * 0.04,
+          base: 0.06 + i * 0.05,
+        });
+      }
+      this.stars = [];
+      for (let i = 0; i < (reduceMotion ? 30 : 60); i++) {
+        this.stars.push({
+          x: Math.random(), y: Math.random() * 0.5,
+          r: Math.random() * 1.1 + 0.3,
+          tw: Math.random() * Math.PI * 2,
+          sp: 0.4 + Math.random(), hue: 200,
+        });
+      }
+    }
+    if (this.current === "dusk") {
+      this.flies = [];
+      const n = reduceMotion ? 0 : 14;
+      for (let i = 0; i < n; i++) {
+        this.flies.push({
+          x: Math.random(), y: 0.45 + Math.random() * 0.45,
+          ph: Math.random() * Math.PI * 2,
+          sp: 0.4 + Math.random() * 0.8,
+          r: 1.1 + Math.random() * 1.3,
+        });
+      }
+    }
+    if (this.current === "ocean") {
+      this.bubbles = [];
+      const n = reduceMotion ? 0 : 18;
+      for (let i = 0; i < n; i++) {
+        this.bubbles.push({
+          x: Math.random(),
+          ph: Math.random(),
+          sp: 0.5 + Math.random() * 0.9,
+          r: 1.5 + Math.random() * 3.5,
         });
       }
     }
@@ -661,7 +1372,7 @@ const Scenes = {
       case "aurora": this._aurora(t); break;
       case "ocean":  this._ocean(t); break;
       case "cosmos": this._cosmos(t); break;
-      default:       this._dusk(); break;
+      default:       this._dusk(t); break;
     }
   },
 
@@ -674,26 +1385,75 @@ const Scenes = {
     ctx2d.fillRect(0, 0, W, H);
   },
 
-  _dusk() {
+  _stars(time) {
+    for (const s of this.stars) {
+      const a = 0.35 + 0.55 * (0.5 + 0.5 * Math.sin(time * 0.001 * s.sp + s.tw));
+      ctx2d.beginPath();
+      ctx2d.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+      ctx2d.fillStyle = `hsla(${s.hue}, 60%, 88%, ${a})`;
+      ctx2d.fill();
+    }
+  },
+
+  _dusk(time) {
     this._radial([[0, "#191430"], [0.55, "#0d0a1c"], [1, "#06050d"]]);
+    ctx2d.save();
+    ctx2d.globalCompositeOperation = "lighter";
+    // low drifting mist
+    for (let i = 0; i < 3; i++) {
+      const mx = ((i * 0.45 + time * 0.000008 * (i + 1)) % 1.4 - 0.2) * W;
+      const my = H * (0.78 + i * 0.07);
+      const g = ctx2d.createRadialGradient(mx, my, 4, mx, my, W * 0.35);
+      g.addColorStop(0, "hsla(258, 35%, 62%, 0.045)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx2d.fillStyle = g;
+      ctx2d.beginPath();
+      ctx2d.ellipse(mx, my, W * 0.35, H * 0.09, 0, 0, Math.PI * 2);
+      ctx2d.fill();
+    }
+    // fireflies: wandering pulses of warm light
+    for (const f of this.flies || []) {
+      const fx = f.x * W + Math.sin(time * 0.0002 * f.sp + f.ph) * 46;
+      const fy = f.y * H + Math.cos(time * 0.00013 * f.sp + f.ph * 1.3) * 30;
+      const pulse = Math.max(0, Math.sin(time * 0.0016 * f.sp + f.ph));
+      const a = 0.1 + Math.pow(pulse, 3) * 0.75;
+      const g = ctx2d.createRadialGradient(fx, fy, 0, fx, fy, f.r * 6);
+      g.addColorStop(0, `hsla(68, 95%, 70%, ${a})`);
+      g.addColorStop(0.35, `hsla(68, 90%, 62%, ${a * 0.32})`);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx2d.fillStyle = g;
+      ctx2d.beginPath();
+      ctx2d.arc(fx, fy, f.r * 6, 0, Math.PI * 2);
+      ctx2d.fill();
+    }
+    ctx2d.restore();
   },
 
   _aurora(time) {
     this._radial([[0, "#0d1626"], [0.6, "#081019"], [1, "#04070e"]]);
     ctx2d.save();
     ctx2d.globalCompositeOperation = "lighter";
-    for (const b of this.blobs) {
-      const x = (b.x + Math.sin(time * 0.00004 * b.sp + b.ph) * 0.08) * W;
-      const sway = Math.sin(time * 0.00006 + b.ph) * 0.5 + 0.5;
-      const top = H * (0.05 + sway * 0.12);
-      const g = ctx2d.createLinearGradient(0, top, 0, H * 0.78);
-      g.addColorStop(0, `hsla(${b.hue}, 80%, 60%, 0)`);
-      g.addColorStop(0.4, `hsla(${b.hue}, 85%, 58%, 0.10)`);
-      g.addColorStop(1, `hsla(${b.hue}, 80%, 55%, 0)`);
-      ctx2d.fillStyle = g;
-      const w = b.w * W;
+    this._stars(time);
+    // layered waving curtains
+    for (const c of this.curtains || []) {
+      const t = time * 0.00005 * c.sp + c.ph;
       ctx2d.beginPath();
-      ctx2d.ellipse(x, H * 0.42, w * 0.5, H * 0.5, 0, 0, Math.PI * 2);
+      const step = 18;
+      const topAt = (x) =>
+        H * (c.base
+          + Math.sin(x * 0.0035 + t * 3) * c.amp
+          + Math.sin(x * 0.0011 - t * 5) * c.amp * 1.6);
+      ctx2d.moveTo(0, topAt(0));
+      for (let x = step; x <= W + step; x += step) ctx2d.lineTo(x, topAt(x));
+      const fall = H * 0.42;
+      ctx2d.lineTo(W + step, topAt(W + step) + fall);
+      for (let x = W; x >= -step; x -= step) ctx2d.lineTo(x, topAt(x) + fall);
+      ctx2d.closePath();
+      const g = ctx2d.createLinearGradient(0, H * c.base, 0, H * c.base + fall);
+      g.addColorStop(0, `hsla(${c.hue}, 85%, 62%, 0.12)`);
+      g.addColorStop(0.35, `hsla(${c.hue}, 80%, 55%, 0.05)`);
+      g.addColorStop(1, `hsla(${c.hue}, 80%, 50%, 0)`);
+      ctx2d.fillStyle = g;
       ctx2d.fill();
     }
     ctx2d.restore();
@@ -701,9 +1461,26 @@ const Scenes = {
 
   _ocean(time) {
     this._radial([[0, "#10405f"], [0.5, "#0a2438"], [1, "#04101d"]]);
-    // slow caustic light bands drifting through the deep
     ctx2d.save();
     ctx2d.globalCompositeOperation = "lighter";
+    // light shafts slanting down from the surface
+    for (let i = 0; i < 3; i++) {
+      const sx = W * (0.18 + i * 0.3) + Math.sin(time * 0.00006 + i * 2.1) * W * 0.04;
+      const sway = 0.5 + 0.5 * Math.sin(time * 0.00009 + i * 1.4);
+      const wTop = W * 0.05, tilt = W * 0.08, hh = H * 0.75;
+      const g = ctx2d.createLinearGradient(0, 0, 0, hh);
+      g.addColorStop(0, `hsla(190, 65%, 72%, ${0.05 + sway * 0.04})`);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx2d.fillStyle = g;
+      ctx2d.beginPath();
+      ctx2d.moveTo(sx, 0);
+      ctx2d.lineTo(sx + wTop, 0);
+      ctx2d.lineTo(sx + tilt + wTop * 2.4, hh);
+      ctx2d.lineTo(sx + tilt - wTop * 1.4, hh);
+      ctx2d.closePath();
+      ctx2d.fill();
+    }
+    // slow caustic light bands drifting through the deep
     for (let i = 0; i < 4; i++) {
       const y = H * (0.2 + i * 0.2);
       const phase = time * 0.00012 * (1 + i * 0.2) + i;
@@ -716,26 +1493,66 @@ const Scenes = {
       ctx2d.lineWidth = 22;
       ctx2d.stroke();
     }
+    // rising bubbles
+    for (const b of this.bubbles || []) {
+      const cyc = (time * 0.00003 * b.sp + b.ph) % 1.1;
+      const by = H * (1.05 - cyc);
+      const bx = b.x * W + Math.sin(time * 0.001 * b.sp + b.ph * 9) * 8;
+      const a = Math.min(0.22, cyc * 0.5);
+      ctx2d.beginPath();
+      ctx2d.arc(bx, by, b.r, 0, Math.PI * 2);
+      ctx2d.strokeStyle = `hsla(190, 70%, 85%, ${a})`;
+      ctx2d.lineWidth = 1;
+      ctx2d.stroke();
+      ctx2d.beginPath();
+      ctx2d.arc(bx - b.r * 0.3, by - b.r * 0.3, b.r * 0.25, 0, Math.PI * 2);
+      ctx2d.fillStyle = `hsla(190, 80%, 92%, ${a * 0.8})`;
+      ctx2d.fill();
+    }
     ctx2d.restore();
   },
 
   _cosmos(time) {
     this._radial([[0, "#100a22"], [0.5, "#080614"], [1, "#03030a"]]);
-    // faint nebula
     ctx2d.save();
     ctx2d.globalCompositeOperation = "lighter";
+    // twin nebulae
     const neb = ctx2d.createRadialGradient(W * 0.66, H * 0.3, 0, W * 0.66, H * 0.3, Math.max(W, H) * 0.5);
     neb.addColorStop(0, "hsla(275, 70%, 55%, 0.10)");
     neb.addColorStop(1, "rgba(0,0,0,0)");
     ctx2d.fillStyle = neb;
     ctx2d.fillRect(0, 0, W, H);
-    // stars
-    for (const s of this.stars) {
-      const a = 0.35 + 0.55 * (0.5 + 0.5 * Math.sin(time * 0.001 * s.sp + s.tw));
-      ctx2d.beginPath();
-      ctx2d.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
-      ctx2d.fillStyle = `hsla(${s.hue}, 60%, 88%, ${a})`;
-      ctx2d.fill();
+    const neb2 = ctx2d.createRadialGradient(W * 0.26, H * 0.62, 0, W * 0.26, H * 0.62, Math.max(W, H) * 0.4);
+    neb2.addColorStop(0, "hsla(198, 65%, 50%, 0.06)");
+    neb2.addColorStop(1, "rgba(0,0,0,0)");
+    ctx2d.fillStyle = neb2;
+    ctx2d.fillRect(0, 0, W, H);
+    this._stars(time);
+    // the occasional shooting star
+    if (!reduceMotion) {
+      if (!this.shoot && Math.random() < 0.0015) {
+        this.shoot = {
+          x: Math.random() * W * 0.7, y: Math.random() * H * 0.3,
+          vx: 4 + Math.random() * 4, vy: 1.2 + Math.random() * 2, life: 1,
+        };
+      }
+      const sh = this.shoot;
+      if (sh) {
+        sh.x += sh.vx; sh.y += sh.vy; sh.life -= 0.016;
+        if (sh.life <= 0 || sh.x > W + 80) this.shoot = null;
+        else {
+          const tail = 16 * sh.life;
+          const g = ctx2d.createLinearGradient(sh.x, sh.y, sh.x - sh.vx * tail, sh.y - sh.vy * tail);
+          g.addColorStop(0, `rgba(255,255,255,${0.85 * sh.life})`);
+          g.addColorStop(1, "rgba(255,255,255,0)");
+          ctx2d.strokeStyle = g;
+          ctx2d.lineWidth = 1.6;
+          ctx2d.beginPath();
+          ctx2d.moveTo(sh.x, sh.y);
+          ctx2d.lineTo(sh.x - sh.vx * tail, sh.y - sh.vy * tail);
+          ctx2d.stroke();
+        }
+      }
     }
     ctx2d.restore();
   },
@@ -765,6 +1582,7 @@ function paintBackground(time) {
  * ============================================================= */
 function frame(time) {
   paintBackground(time);
+  drawRipples();
 
   // decay visual levels; rubbing keeps them up via pointer logic
   bowls.forEach((b) => {
@@ -773,6 +1591,8 @@ function frame(time) {
       const decayRate = v._rubTarget > 0.01 ? 0 : 0.045;
       if (v._rubTarget > 0.01) {
         b.level = lerp(b.level, Math.min(1.2, v._rubTarget * 1.1), 0.08);
+        // a singing bowl sheds visible sound rings now and then
+        if (Math.random() < 0.045 * v._rubTarget) spawnRipple(b, b.level);
       } else {
         b.level *= (1 - decayRate);
         v.level = b.level;
@@ -785,7 +1605,9 @@ function frame(time) {
 
   // draw back-to-front isn't needed (single row); draw left to right
   bowls.forEach((b) => drawBowl(b, time));
+  Wood.draw(time);
 
+  AutoPlay.tick(time);
   updatePointers(time);
 
   // mallet follows every cursor / active touch point
@@ -824,6 +1646,15 @@ function bowlAt(x, y) {
 function onDown(e) {
   if (!audio) return;
   const x = e.clientX, y = e.clientY;
+  if (Wood.hitTest(x, y)) {
+    Wood.play(x);
+    pointers.set(e.pointerId, {
+      wood: true,
+      lastTube: Wood.key === "aurora" ? Wood._tubeAt(x) : -1,
+    });
+    canvas.setPointerCapture?.(e.pointerId);
+    return;
+  }
   const b = bowlAt(x, y);
   if (!b) return;
   dismissHint();
@@ -839,6 +1670,14 @@ function onDown(e) {
 function onMove(e) {
   const p = pointers.get(e.pointerId);
   if (!p) return;
+  if (p.wood) {
+    // dragging across the bamboo chimes strums tube by tube
+    if (Wood.key === "aurora" && Wood.hitTest(e.clientX, e.clientY)) {
+      const ti = Wood._tubeAt(e.clientX);
+      if (ti !== p.lastTube) { Wood.strumAt(e.clientX, 0.6); p.lastTube = ti; }
+    }
+    return;
+  }
   const x = e.clientX, y = e.clientY;
   const now = performance.now();
   const b = p.bowl;
@@ -952,6 +1791,7 @@ function onUp(e) {
   const p = pointers.get(e.pointerId);
   if (!p) return;
   pointers.delete(e.pointerId);
+  if (p.wood) return;
   const b = p.bowl;
   const dur = performance.now() - p.startT;
 
@@ -960,12 +1800,18 @@ function onUp(e) {
   } else if (p.path < 12 && dur < 400) {
     // quick click -> strike
     b.voice.strike(0.9, false);
+    exciteVisual(b, 0.75);
+    spawnRipple(b, 0.9);
   } else if (p.path < 160 && dur < 260) {
     // fast swipe across the rim -> bright flick
     b.voice.strike(0.85, true);
+    exciteVisual(b, 0.55);
+    spawnRipple(b, 0.7);
   } else {
     // a slow drag that never built into a rub -> soft strike
     b.voice.strike(0.6, false);
+    exciteVisual(b, 0.45);
+    spawnRipple(b, 0.5);
   }
 }
 
@@ -1014,6 +1860,9 @@ document.getElementById("volume").addEventListener("input", (e) => {
 document.getElementById("oct-down").addEventListener("click", () => setOctave(-1));
 document.getElementById("oct-up").addEventListener("click", () => setOctave(1));
 
+document.getElementById("auto-btn").addEventListener("click", () => AutoPlay.toggle());
+document.getElementById("amb-btn").addEventListener("click", () => Ambience.toggle());
+
 document.getElementById("scenes").addEventListener("click", (e) => {
   const btn = e.target.closest(".scene");
   if (btn) Scenes.set(btn.dataset.scene);
@@ -1034,6 +1883,9 @@ function start() {
   if (audio.ctx.state === "suspended") audio.ctx.resume();
   audio.master.gain.value = parseFloat(document.getElementById("volume").value);
   bowls.forEach((b) => { b.voice = new BowlVoice(audio, currentMaterial, b.freq); });
+  audio.setSpace(SCENE_AUDIO[Scenes.current].verb);
+  if (!Ambience.enabled) audio.amb.gain.value = 0;
+  Ambience.setScene(Scenes.current);
   startOverlay.classList.add("gone");
   setTimeout(() => startOverlay.remove(), 800);
 }
