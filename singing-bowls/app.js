@@ -285,6 +285,50 @@ class BowlVoice {
     this.noiseGain.gain.setTargetAtTime(0, t, 0.18);
   }
 
+  // is there audible energy left in the modal bank?
+  isRinging() {
+    return this.partials.some((p) => p.env.gain.value > 0.003);
+  }
+
+  // a hand rests on the rim — the shimmer dies at the touch, the low
+  // hum softens away over a beat, like a real palm settling on metal
+  damp() {
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    this._rubTarget = 0;
+    this.partials.forEach((p, i) => {
+      const g = p.env.gain;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(g.value, t);
+      g.setTargetAtTime(0, t, Math.max(0.05, 0.18 / (i + 1)));
+    });
+    this.noiseGain.gain.cancelScheduledValues(t);
+    this.noiseGain.gain.setValueAtTime(this.noiseGain.gain.value, t);
+    this.noiseGain.gain.setTargetAtTime(0, t, 0.03);
+
+    // contact thud: flesh on metal, scaled by how loud the bowl was
+    const loud = Math.min(1, this.level);
+    if (loud > 0.05) {
+      const tick = ctx.createBufferSource();
+      tick.buffer = this.engine.noiseBuffer;
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 240;
+      bp.Q.value = 0.6;
+      const tg = ctx.createGain();
+      tg.gain.value = 0;
+      tick.connect(bp); bp.connect(tg); this.engine.busConnect(tg);
+      tg.gain.setValueAtTime(0.07 * loud, t);
+      tg.gain.exponentialRampToValueAtTime(0.0006, t + 0.09);
+      tick.start(t);
+      tick.stop(t + 0.15);
+      tick.onended = () => { tick.disconnect(); bp.disconnect(); tg.disconnect(); };
+    }
+
+    // the glow eases down with the hum rather than snapping off
+    this.level = Math.min(this.level, 0.4);
+  }
+
   // a strike — excite every mode at once, sharp attack then modal decay
   strike(level, bright) {
     const ctx = this.ctx;
@@ -918,6 +962,14 @@ const AutoPlay = {
       this.swells.length = 0;
       this.strokes.length = 0;
     }
+  },
+
+  // the player damped this bowl -- the ghost mallet backs off it
+  dampBowl(b) {
+    for (let i = this.swells.length - 1; i >= 0; i--)
+      if (this.swells[i].bowl === b) this.swells.splice(i, 1);
+    for (let i = this.strokes.length - 1; i >= 0; i--)
+      if (this.strokes[i].bowl === b && !this.strokes[i].fired) this.strokes.splice(i, 1);
   },
 
   tick(now) {
@@ -1733,6 +1785,7 @@ function onDown(e) {
     lastAngle: Math.atan2(y - b.cy, x - b.cx),
     lastX: x, lastY: y, lastMoveT: performance.now(),
     speed: 0, path: 0, hasRubbed: false,
+    wasRinging: b.voice?.isRinging() ?? false, damped: false,
   });
   canvas.setPointerCapture?.(e.pointerId);
 }
@@ -1777,9 +1830,19 @@ function onMove(e) {
   }
 }
 
+const DAMP_HOLD_MS = 350;   // hold this long on a ringing bowl to damp it
+
 function updatePointers(time) {
   const now = performance.now();
   pointers.forEach((p) => {
+    // a still hand resting on a ringing bowl chokes the sound
+    if (!p.wood && !p.hasRubbed && !p.damped && p.wasRinging &&
+        p.path < 12 && now - p.startT > DAMP_HOLD_MS) {
+      p.damped = true;
+      p.bowl.voice?.damp();
+      p.bowl.level = Math.min(p.bowl.level, 0.4);
+      AutoPlay.dampBowl(p.bowl);
+    }
     if (p.hasRubbed && now - p.lastMoveT > 90) {
       // finger still down but not circling -> friction fades
       p.speed *= 0.9;
@@ -1867,6 +1930,8 @@ function onUp(e) {
 
   if (p.hasRubbed) {
     b.voice.endRub();
+  } else if (p.damped) {
+    // the hand lifts off a damped bowl -- silence is the point
   } else if (p.path < 12 && dur < 400) {
     // quick click -> strike
     b.voice.strike(0.9, false);
