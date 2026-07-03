@@ -1954,6 +1954,9 @@ canvas.addEventListener("pointerdown", onDown);
 canvas.addEventListener("pointermove", onMove);
 canvas.addEventListener("pointerup", onUp);
 canvas.addEventListener("pointercancel", onUp);
+// long-press (and right-click) must not pop the browser menu mid-gesture --
+// holding a bowl is how you damp it
+canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 
 // track every pointer (even hovering, no button) so the mallet follows it
 function setCursor(e, down) {
