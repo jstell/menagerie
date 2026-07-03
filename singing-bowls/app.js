@@ -897,6 +897,7 @@ const AutoPlay = {
   on: false,
   nextT: 0,
   swells: [],   // active rub swells {bowl, t0, rise, hold, fall, peak}
+  strokes: [],  // in-flight strike animations: mallet swings in, taps, withdraws
   // favor the C-pentatonic degrees (C D E G A); F and B stay rare
   weights: [1, 0.9, 0.9, 0.25, 1, 0.9, 0.18],
   lastIdx: -1,
@@ -906,10 +907,12 @@ const AutoPlay = {
     document.getElementById("auto-btn")?.classList.toggle("active", this.on);
     if (this.on) {
       dismissHint();
+      this.firstEvent = true;   // open with a rub so the mode announces itself
       this.nextT = performance.now() + 500;
     } else {
       this.swells.forEach((s) => s.bowl.voice?.endRub());
       this.swells.length = 0;
+      this.strokes.length = 0;
     }
   },
 
@@ -919,6 +922,7 @@ const AutoPlay = {
       if (now >= this.nextT) this.nextT = now + 3500 + Math.random() * 5500;
     }
     this._runSwells(now);
+    this._runStrokes(now);
   },
 
   _pick() {
@@ -933,25 +937,40 @@ const AutoPlay = {
   },
 
   _event(now) {
-    const roll = Math.random();
-    if (roll < 0.16) { Wood.autoHit(); return; }
+    const roll = this.firstEvent ? 0.3 : Math.random();
+    this.firstEvent = false;
+    if (roll < 0.12) { Wood.autoHit(); return; }
     const b = this._pick();
     if (!b || !b.voice) return;
-    if (roll < 0.36) {
+    if (roll < 0.62) {
+      // rub around the rim -- the traditional singing technique, and the
+      // most common event; usually a faint tap "warms up" the bowl first,
+      // but sometimes the rub just breathes in from silence
+      if (Math.random() < 0.6) {
+        b.voice.strike(0.08 + Math.random() * 0.14, false);
+        exciteVisual(b, 0.15);
+      }
       this.swells.push({
         bowl: b, t0: now,
         rise: 3200 + Math.random() * 1800,
         hold: 2000 + Math.random() * 2500,
         fall: 2600,
         peak: 0.5 + Math.random() * 0.35,
+        ang: Math.random() * Math.PI * 2,
+        lastT: now,
       });
       this.nextT = now + 6500 + Math.random() * 6000; // give the swell room to breathe
     } else {
-      const bright = Math.random() < 0.1;
-      const lvl = 0.35 + Math.random() * 0.35;
-      b.voice.strike(lvl, bright);
-      exciteVisual(b, lvl * 0.8);
-      spawnRipple(b, lvl);
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const th = side > 0 ? 0.45 : Math.PI - 0.45; // contact point on the rim
+      const tx = b.cx + Math.cos(th) * b.rx;
+      const ty = b.cy + Math.sin(th) * b.ry;
+      this.strokes.push({
+        bowl: b, t0: now, dur: 950, hit: 0.42, fired: false,
+        lvl: 0.35 + Math.random() * 0.35,
+        bright: Math.random() < 0.1,
+        tx, ty, sx: tx + side * 70, sy: ty - 90,
+      });
     }
   },
 
@@ -959,17 +978,64 @@ const AutoPlay = {
     for (let i = this.swells.length - 1; i >= 0; i--) {
       const s = this.swells[i];
       const t = now - s.t0;
-      let inten;
-      if (t < s.rise) inten = t / s.rise;
-      else if (t < s.rise + s.hold) inten = 1;
-      else inten = 1 - (t - s.rise - s.hold) / s.fall;
-      if (inten <= 0 || !s.bowl.voice) {
+      // only retire a swell once its whole envelope has played out --
+      // checking inten <= 0 here killed newborn swells on their first frame
+      if (t >= s.rise + s.hold + s.fall || !s.bowl.voice) {
         s.bowl.voice?.endRub();
         this.swells.splice(i, 1);
         continue;
       }
+      let inten;
+      if (t < s.rise) {
+        const u = t / s.rise;
+        inten = u * u * (3 - 2 * u);   // eased rise: barely-there at first
+      } else if (t < s.rise + s.hold) inten = 1;
+      else inten = 1 - (t - s.rise - s.hold) / s.fall;
       s.bowl.voice.rub(inten * s.peak * 0.9);
       if (Math.random() < 0.02 * inten) spawnRipple(s.bowl, inten * 0.7);
+
+      // ghost mallet circles the rim, speeding up as the swell builds
+      const dt = Math.min(50, now - s.lastT) / 1000;
+      s.lastT = now;
+      s.ang += (0.9 + inten * 2.6) * dt;
+      const b = s.bowl;
+      const x = b.cx + Math.cos(s.ang) * b.rx;
+      const y = b.cy + Math.sin(s.ang) * b.ry;
+      b.trail.push({ x, y, life: 1 });
+      if (b.trail.length > 26) b.trail.shift();
+      ctx2d.save();
+      ctx2d.globalAlpha = 0.4 + 0.45 * inten;
+      drawMallet(x, y, true);
+      ctx2d.restore();
+    }
+  },
+
+  _runStrokes(now) {
+    for (let i = this.strokes.length - 1; i >= 0; i--) {
+      const k = this.strokes[i];
+      const t = (now - k.t0) / k.dur;
+      if (t >= 1 || !k.bowl.voice) { this.strokes.splice(i, 1); continue; }
+      if (!k.fired && t >= k.hit) {
+        k.fired = true;
+        k.bowl.voice.strike(k.lvl, k.bright);
+        exciteVisual(k.bowl, k.lvl * 0.8);
+        spawnRipple(k.bowl, k.lvl);
+      }
+      let f, alpha;   // f: 0 at rest point, 1 at rim contact
+      if (t < k.hit) {
+        const u = t / k.hit;
+        f = u * u * (3 - 2 * u);
+        alpha = Math.min(1, (now - k.t0) / 160);   // fade in on approach
+      } else {
+        const u = (t - k.hit) / (1 - k.hit);
+        f = 1 - u * u * (3 - 2 * u);
+        alpha = 1 - Math.max(0, (u - 0.55) / 0.45); // fade out on retreat
+      }
+      ctx2d.save();
+      ctx2d.globalAlpha = alpha * 0.9;
+      drawMallet(k.sx + (k.tx - k.sx) * f, k.sy + (k.ty - k.sy) * f,
+                 k.fired && t < k.hit + 0.12);
+      ctx2d.restore();
     }
   },
 };
@@ -1836,8 +1902,20 @@ canvas.addEventListener("pointerup", (e) => {
   if (e.pointerType !== "mouse") cursors.delete(e.pointerId); // touch lifts away
 });
 canvas.addEventListener("pointercancel", (e) => cursors.delete(e.pointerId));
-canvas.addEventListener("pointerleave", (e) => {
-  if (e.pointerType === "mouse") cursors.delete(e.pointerId);
+canvas.addEventListener("pointerleave", (e) => cursors.delete(e.pointerId));
+
+// losing focus can swallow pointerup/pointercancel, leaving orphaned mallets
+// and stuck rubs -- sweep everything when the page goes to the background
+function resetPointerState() {
+  pointers.forEach((p) => {
+    if (!p.wood && p.hasRubbed) p.bowl.voice.endRub();
+  });
+  pointers.clear();
+  cursors.clear();
+}
+window.addEventListener("blur", resetPointerState);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) resetPointerState();
 });
 
 /* ============================================================= *

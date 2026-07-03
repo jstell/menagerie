@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Singing Bowls</title>
-<link rel="stylesheet" href="style.css?v=9531d0e" />
+<link rel="stylesheet" href="style.css?v=eab3907" />
 </head>
 <body>
   <canvas id="stage"></canvas>
@@ -29,7 +29,10 @@
         <button id="oct-up" aria-label="Raise octave">+</button>
       </div>
       <button id="auto-btn" class="tgl" title="Auto-play — let the bowls play themselves" aria-label="Toggle auto-play">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5-10-6.5z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path class="ic-play" d="M8 5.5v13l10-6.5-10-6.5z"/>
+          <g class="ic-pause"><rect x="7" y="5.5" width="3.6" height="13" rx="1.1"/><rect x="13.4" y="5.5" width="3.6" height="13" rx="1.1"/></g>
+        </svg>
       </button>
       <button id="amb-btn" class="tgl" title="Ambient soundscape" aria-label="Toggle ambient soundscape">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -81,6 +84,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=9531d0e"></script>
+  <script src="app.js?v=eab3907"></script>
 </body>
 </html>

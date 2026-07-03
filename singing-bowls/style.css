@@ -201,6 +201,11 @@ html, body {
 }
 .tgl.off { opacity: 0.42; }
 
+/* auto-play button swaps play -> pause while running */
+#auto-btn .ic-pause { display: none; }
+#auto-btn.active .ic-play { display: none; }
+#auto-btn.active .ic-pause { display: block; }
+
 .help {
   width: 30px; height: 30px;
   border-radius: 50%;
