@@ -404,19 +404,23 @@ const Ambience = {
         osc.frequency.value = 4100 + Math.random() * 600;
         const trem = ctx.createOscillator();
         trem.frequency.value = 26 + Math.random() * 14;
+        // tremolo must be its own multiplicative stage: summing it into the
+        // envelope param leaves the voice sounding between chirps (a param's
+        // inputs add to its scheduled value, so gain never reaches 0)
+        const tremStage = ctx.createGain(); tremStage.gain.value = 0.5;
         const tremG = ctx.createGain(); tremG.gain.value = 0.5;
-        const am = ctx.createGain(); am.gain.value = 0;      // chirp envelope × tremolo
-        trem.connect(tremG); tremG.connect(am.gain);
+        trem.connect(tremG); tremG.connect(tremStage.gain); // 0..1 flutter
+        const am = ctx.createGain(); am.gain.value = 0;      // chirp envelope
         const out = ctx.createGain(); out.gain.value = 0.016;
-        osc.connect(am); am.connect(out); out.connect(layer.gain);
+        osc.connect(am); am.connect(tremStage); tremStage.connect(out); out.connect(layer.gain);
         osc.start(); trem.start();
-        N.push(osc, trem, tremG, am, out);
+        N.push(osc, trem, tremG, tremStage, am, out);
         const chirp = () => {
           const t = ctx.currentTime, dur = 0.35 + Math.random() * 0.6;
           am.gain.cancelScheduledValues(t);
           am.gain.setValueAtTime(0, t);
-          am.gain.linearRampToValueAtTime(0.5, t + 0.05);
-          am.gain.setValueAtTime(0.5, t + dur - 0.08);
+          am.gain.linearRampToValueAtTime(1, t + 0.05);
+          am.gain.setValueAtTime(1, t + dur - 0.08);
           am.gain.linearRampToValueAtTime(0, t + dur);
           layer.timers.push(setTimeout(chirp, 900 + Math.random() * 3200));
         };
