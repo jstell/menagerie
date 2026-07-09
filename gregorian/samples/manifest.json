@@ -1,0 +1,391 @@
+{
+  "phrases": [
+    {
+      "id": "kyrie",
+      "label": "Kyrie",
+      "latin": "Kyrie eleison, Kyrie eleison",
+      "choir": "monks",
+      "file": "phrases/kyrie.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 144.3,
+      "end_pitch_hz": 145.1
+    },
+    {
+      "id": "gloria",
+      "label": "Gloria",
+      "latin": "Gloria in excelsis Deo",
+      "choir": "monks",
+      "file": "phrases/gloria.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 147.7,
+      "end_pitch_hz": 150.3
+    },
+    {
+      "id": "sanctus",
+      "label": "Sanctus",
+      "latin": "Sanctus, Sanctus, Sanctus Dominus Deus Sabaoth",
+      "choir": "monks",
+      "file": "phrases/sanctus.mp3",
+      "duration_s": 14.0,
+      "base_pitch_hz": 108.1,
+      "end_pitch_hz": 108.7
+    },
+    {
+      "id": "agnus_dei",
+      "label": "Agnus Dei",
+      "latin": "Agnus Dei, qui tollis peccata mundi",
+      "choir": "monks",
+      "file": "phrases/agnus_dei.mp3",
+      "duration_s": 14.0,
+      "base_pitch_hz": 124.9,
+      "end_pitch_hz": 125.6
+    },
+    {
+      "id": "pie_jesu",
+      "label": "Pie Jesu",
+      "latin": "Pie Jesu Domine, dona eis requiem",
+      "choir": "monks",
+      "file": "phrases/pie_jesu.mp3",
+      "duration_s": 14.0,
+      "base_pitch_hz": 144.3,
+      "end_pitch_hz": 144.3
+    },
+    {
+      "id": "dies_irae",
+      "label": "Dies irae",
+      "latin": "Dies irae, dies illa",
+      "choir": "monks",
+      "file": "phrases/dies_irae.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 173.6,
+      "end_pitch_hz": 173.6
+    },
+    {
+      "id": "alleluia",
+      "label": "Alleluia",
+      "latin": "Alleluia, alleluia",
+      "choir": "monks",
+      "file": "phrases/alleluia.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 98.6,
+      "end_pitch_hz": 98.6
+    },
+    {
+      "id": "credo",
+      "label": "Credo",
+      "latin": "Credo in unum Deum",
+      "choir": "monks",
+      "file": "phrases/credo.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 146.0,
+      "end_pitch_hz": 146.0
+    },
+    {
+      "id": "salve_regina",
+      "label": "Salve Regina",
+      "latin": "Salve Regina, mater misericordiae",
+      "choir": "monks",
+      "file": "phrases/salve_regina.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 196.0,
+      "end_pitch_hz": 196.0
+    },
+    {
+      "id": "lux_aeterna",
+      "label": "Lux aeterna",
+      "latin": "Lux aeterna luceat eis",
+      "choir": "monks",
+      "file": "phrases/lux_aeterna.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 109.4,
+      "end_pitch_hz": 109.4
+    },
+    {
+      "id": "in_paradisum",
+      "label": "In paradisum",
+      "latin": "In paradisum deducant te angeli",
+      "choir": "monks",
+      "file": "phrases/in_paradisum.mp3",
+      "duration_s": 14.0,
+      "base_pitch_hz": 98.0,
+      "end_pitch_hz": 98.0
+    },
+    {
+      "id": "amen",
+      "label": "Amen",
+      "latin": "Amen, amen",
+      "choir": "monks",
+      "file": "phrases/amen.mp3",
+      "duration_s": 10.0,
+      "base_pitch_hz": 94.1,
+      "end_pitch_hz": 94.1
+    },
+    {
+      "id": "kyrie_s",
+      "label": "Kyrie",
+      "latin": "Kyrie eleison, Kyrie eleison",
+      "choir": "sisters",
+      "file": "phrases/kyrie_s.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 278.8,
+      "end_pitch_hz": 280.4
+    },
+    {
+      "id": "gloria_s",
+      "label": "Gloria",
+      "latin": "Gloria in excelsis Deo",
+      "choir": "sisters",
+      "file": "phrases/gloria_s.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 293.7,
+      "end_pitch_hz": 295.4
+    },
+    {
+      "id": "sanctus_s",
+      "label": "Sanctus",
+      "latin": "Sanctus, Sanctus, Sanctus Dominus Deus Sabaoth",
+      "choir": "sisters",
+      "file": "phrases/sanctus_s.mp3",
+      "duration_s": 14.0,
+      "base_pitch_hz": 290.3,
+      "end_pitch_hz": 292.0
+    },
+    {
+      "id": "agnus_dei_s",
+      "label": "Agnus Dei",
+      "latin": "Agnus Dei, qui tollis peccata mundi",
+      "choir": "sisters",
+      "file": "phrases/agnus_dei_s.mp3",
+      "duration_s": 14.0,
+      "base_pitch_hz": 434.9,
+      "end_pitch_hz": 93.0
+    },
+    {
+      "id": "pie_jesu_s",
+      "label": "Pie Jesu",
+      "latin": "Pie Jesu Domine, dona eis requiem",
+      "choir": "sisters",
+      "file": "phrases/pie_jesu_s.mp3",
+      "duration_s": 14.0,
+      "base_pitch_hz": 293.7,
+      "end_pitch_hz": 295.4
+    },
+    {
+      "id": "dies_irae_s",
+      "label": "Dies irae",
+      "latin": "Dies irae, dies illa",
+      "choir": "sisters",
+      "file": "phrases/dies_irae_s.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 295.4,
+      "end_pitch_hz": 295.4
+    },
+    {
+      "id": "alleluia_s",
+      "label": "Alleluia",
+      "latin": "Alleluia, alleluia",
+      "choir": "sisters",
+      "file": "phrases/alleluia_s.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 293.7,
+      "end_pitch_hz": 293.7
+    },
+    {
+      "id": "credo_s",
+      "label": "Credo",
+      "latin": "Credo in unum Deum",
+      "choir": "sisters",
+      "file": "phrases/credo_s.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 295.4,
+      "end_pitch_hz": 295.4
+    },
+    {
+      "id": "salve_regina_s",
+      "label": "Salve Regina",
+      "latin": "Salve Regina, mater misericordiae",
+      "choir": "sisters",
+      "file": "phrases/salve_regina_s.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 293.7,
+      "end_pitch_hz": 293.7
+    },
+    {
+      "id": "lux_aeterna_s",
+      "label": "Lux aeterna",
+      "latin": "Lux aeterna luceat eis",
+      "choir": "sisters",
+      "file": "phrases/lux_aeterna_s.mp3",
+      "duration_s": 12.0,
+      "base_pitch_hz": 293.7,
+      "end_pitch_hz": 293.7
+    },
+    {
+      "id": "in_paradisum_s",
+      "label": "In paradisum",
+      "latin": "In paradisum deducant te angeli",
+      "choir": "sisters",
+      "file": "phrases/in_paradisum_s.mp3",
+      "duration_s": 14.0,
+      "base_pitch_hz": 220.0,
+      "end_pitch_hz": 220.0
+    },
+    {
+      "id": "amen_s",
+      "label": "Amen",
+      "latin": "Amen, amen",
+      "choir": "sisters",
+      "file": "phrases/amen_s.mp3",
+      "duration_s": 10.0,
+      "base_pitch_hz": 293.7,
+      "end_pitch_hz": 293.7
+    }
+  ],
+  "drones": [
+    {
+      "id": "drone_ah_a",
+      "vowel": "ah",
+      "choir": "monks",
+      "file": "drones/drone_ah_a.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 73.4,
+      "stability_cents": 161.9
+    },
+    {
+      "id": "drone_ah_b",
+      "vowel": "ah",
+      "choir": "monks",
+      "file": "drones/drone_ah_b.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 81.9,
+      "stability_cents": 94.6
+    },
+    {
+      "id": "drone_oo_a",
+      "vowel": "oo",
+      "choir": "monks",
+      "file": "drones/drone_oo_a.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 65.4,
+      "stability_cents": 95.1
+    },
+    {
+      "id": "drone_oo_b",
+      "vowel": "oo",
+      "choir": "monks",
+      "file": "drones/drone_oo_b.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 110.0,
+      "stability_cents": 271.1
+    },
+    {
+      "id": "drone_mm_a",
+      "vowel": "mm",
+      "choir": "monks",
+      "file": "drones/drone_mm_a.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 165.8,
+      "stability_cents": 159.2
+    },
+    {
+      "id": "drone_mm_b",
+      "vowel": "mm",
+      "choir": "monks",
+      "file": "drones/drone_mm_b.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 82.4,
+      "stability_cents": 134.3
+    },
+    {
+      "id": "drone_s_ah_a",
+      "vowel": "ah",
+      "choir": "sisters",
+      "file": "drones/drone_s_ah_a.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 155.6,
+      "stability_cents": 135.5
+    },
+    {
+      "id": "drone_s_ah_b",
+      "vowel": "ah",
+      "choir": "sisters",
+      "file": "drones/drone_s_ah_b.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 116.5,
+      "stability_cents": 299.5
+    },
+    {
+      "id": "drone_s_oo_a",
+      "vowel": "oo",
+      "choir": "sisters",
+      "file": "drones/drone_s_oo_a.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 147.7,
+      "stability_cents": 223.7
+    },
+    {
+      "id": "drone_s_oo_b",
+      "vowel": "oo",
+      "choir": "sisters",
+      "file": "drones/drone_s_oo_b.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 98.0,
+      "stability_cents": 111.3
+    },
+    {
+      "id": "drone_s_mm_a",
+      "vowel": "mm",
+      "choir": "sisters",
+      "file": "drones/drone_s_mm_a.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 261.6,
+      "stability_cents": 98.5
+    },
+    {
+      "id": "drone_s_mm_b",
+      "vowel": "mm",
+      "choir": "sisters",
+      "file": "drones/drone_s_mm_b.mp3",
+      "duration_s": 20.0,
+      "base_pitch_hz": 293.7,
+      "stability_cents": 19.6
+    }
+  ],
+  "sfx": [
+    {
+      "id": "bell",
+      "kind": "oneshot",
+      "label": "Bell",
+      "file": "sfx/bell.mp3",
+      "duration_s": 6.0
+    },
+    {
+      "id": "candles",
+      "kind": "loop",
+      "label": "Candles",
+      "file": "sfx/candles.mp3",
+      "duration_s": 20.0
+    },
+    {
+      "id": "wind",
+      "kind": "loop",
+      "label": "Wind",
+      "file": "sfx/wind.mp3",
+      "duration_s": 20.0
+    },
+    {
+      "id": "rain",
+      "kind": "loop",
+      "label": "Rain",
+      "file": "sfx/rain.mp3",
+      "duration_s": 20.0
+    },
+    {
+      "id": "thunder",
+      "kind": "loop",
+      "label": "Thunder",
+      "file": "sfx/thunder.mp3",
+      "duration_s": 20.0
+    }
+  ]
+}

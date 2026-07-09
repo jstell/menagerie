@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schola Cantorum</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23171009'/%3E%3Ctext x='16' y='24' font-size='22' text-anchor='middle' fill='%23c9a227'%3E%E2%9C%A0%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css?v=61ad28b">
+</head>
+<body data-hour="vespers" data-started="no">
+
+  <!-- ============ SCENE ============ -->
+  <div id="scene" aria-hidden="true">
+    <div class="sky"></div>
+    <div class="stars"></div>
+    <div class="horizon"></div>
+    <div class="shafts">
+      <div class="shaft s1"></div>
+      <div class="shaft s2"></div>
+      <div class="shaft s3"></div>
+    </div>
+    <div class="rose-window"></div>
+    <div class="arches far"></div>
+    <div class="arches mid"></div>
+    <div class="arches near"></div>
+    <div class="floor"></div>
+    <canvas id="smoke"></canvas>
+    <div id="verba"></div>
+    <div class="candles" id="candles"></div>
+    <div class="glow" id="glow"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <!-- ============ VEIL (first-gesture gate) ============ -->
+  <div id="veil">
+    <div class="veil-inner">
+      <div class="veil-cross">✠</div>
+      <h1>Schola Cantorum</h1>
+      <p class="veil-sub">an instrument of plainchant</p>
+      <button id="enter">Enter the nave</button>
+      <p class="veil-note" id="veil-note"></p>
+    </div>
+  </div>
+
+  <!-- ============ INSTRUMENT ============ -->
+  <main id="ui">
+    <header id="topbar">
+      <div class="brand"><span class="cross">✠</span> Schola Cantorum</div>
+      <div class="top-controls">
+        <div class="hour-select" role="group" aria-label="Choir">
+          <button data-choir-btn="monks" class="active" title="The brothers — dark, grounded voices">Monks</button>
+          <button data-choir-btn="sisters" title="The sisters and children — light, high voices">Sisters</button>
+        </div>
+        <div class="hour-select" role="group" aria-label="Liturgical hour">
+          <button data-hour-btn="matins" title="Matins — the night office">Matins</button>
+          <button data-hour-btn="lauds" title="Lauds — at dawn">Lauds</button>
+          <button data-hour-btn="vespers" class="active" title="Vespers — at dusk">Vespers</button>
+          <button data-hour-btn="compline" title="Compline — before sleep">Compline</button>
+          <button data-hour-btn="auto" title="Follow the clock">☉ Clock</button>
+        </div>
+        <button id="antiphonal" class="rite-btn" title="The choirs answer each other across the nave (a)">⇄ Antiphonal</button>
+        <button id="vespers-mode" class="rite-btn" title="The schola sings by itself">Self-singing</button>
+        <button id="record" class="rite-btn" title="Record the performance">● Record</button>
+        <button id="silence" class="rite-btn" title="Still every voice (Esc)">✕ Silentium</button>
+      </div>
+    </header>
+
+    <div id="stage">
+      <!-- Phrase pads -->
+      <section id="antiphonary" aria-label="Chant phrases">
+        <div class="panel-title">Antiphonarium <span class="key-hint">keys q–]</span></div>
+        <div id="pads" class="pads"></div>
+        <div id="bank-note" class="bank-note"></div>
+      </section>
+
+      <!-- Drone + organum rail -->
+      <aside id="drone-rail" aria-label="Drone controls">
+        <div class="panel-title">Ison <span class="key-hint">space</span></div>
+        <button id="drone-toggle" class="drone-toggle">Begin the drone</button>
+
+        <div class="ctl-row">
+          <label for="drone-note">Note</label>
+          <select id="drone-note"></select>
+          <select id="drone-octave">
+            <option value="2" selected>Oct 2</option>
+            <option value="3">Oct 3</option>
+            <option value="4">Oct 4</option>
+          </select>
+        </div>
+
+        <div class="ctl-row">
+          <label for="drone-vowel">Vowel</label>
+          <div class="seg" id="drone-vowel">
+            <button data-vowel="ah" class="active">Ah</button>
+            <button data-vowel="oo">Oo</button>
+            <button data-vowel="mm">Mm</button>
+          </div>
+        </div>
+
+        <div class="ctl-slider">
+          <label for="drone-voices">Voices <output id="out-voices">3</output></label>
+          <input type="range" id="drone-voices" min="1" max="5" step="1" value="3">
+        </div>
+        <div class="ctl-slider">
+          <label for="drone-fine">Fine tune <output id="out-fine">0¢</output></label>
+          <input type="range" id="drone-fine" min="-50" max="50" step="1" value="0">
+        </div>
+        <div class="ctl-slider">
+          <label for="drone-swell">Swell <output id="out-swell">3.0s</output></label>
+          <input type="range" id="drone-swell" min="0.2" max="8" step="0.1" value="3">
+        </div>
+        <div class="ctl-slider">
+          <label for="drone-level">Level <output id="out-dlevel">70</output></label>
+          <input type="range" id="drone-level" min="0" max="100" step="1" value="70">
+        </div>
+
+        <div class="panel-title organum-title">Organum</div>
+        <div class="seg organum-seg">
+          <button id="org-5" title="Add a voice a fifth above">+ Fifth</button>
+          <button id="org-8" title="Add a voice an octave above">+ Octave</button>
+        </div>
+
+        <div class="seg tune-seg">
+          <button id="tune-chants" class="active" title="Pull each chant's cadence onto the ison's note">Tune chants to ison</button>
+        </div>
+        <div class="ctl-slider transpose-ctl">
+          <label for="pad-transpose">Chant transpose <output id="out-transpose">0 st</output></label>
+          <input type="range" id="pad-transpose" min="-5" max="5" step="1" value="0">
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom console: venue + mix + ambience -->
+    <footer id="console">
+      <div class="console-block venue-block">
+        <div class="panel-title">Venue</div>
+        <input type="range" id="venue" min="0" max="100" step="1" value="45" aria-label="Venue size">
+        <div class="venue-scale"><span>Chapel</span><span>Cathedral</span><span>Basilica</span></div>
+        <div class="venue-sub">
+          <div class="mini-slider">
+            <label for="wet">Bloom <output id="out-wet">50</output></label>
+            <input type="range" id="wet" min="0" max="100" value="50">
+          </div>
+          <div class="mini-slider">
+            <label for="warmth">Warmth <output id="out-warmth">60</output></label>
+            <input type="range" id="warmth" min="0" max="100" value="60">
+          </div>
+        </div>
+      </div>
+
+      <div class="console-block ambience-block">
+        <div class="panel-title">Elements</div>
+        <div class="amb-grid" id="ambience"></div>
+      </div>
+
+      <div class="console-block bell-block">
+        <div class="panel-title">Campana <span class="key-hint">b</span></div>
+        <button id="bell" class="bell-btn" title="Toll the bell">🔔<span>Toll</span></button>
+      </div>
+    </footer>
+  </main>
+
+  <div id="toast" role="status"></div>
+
+  <script type="module" src="js/app.js?v=61ad28b"></script>
+</body>
+</html>
