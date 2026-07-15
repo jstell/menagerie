@@ -163,6 +163,17 @@
     let animFrameId = null;
     let waveformData, frequencyData;
 
+    // Air mode (webcam hand tracking)
+    let airActive = false;
+    let airLoading = false;
+    let airLandmarker = null;
+    let airStream = null;
+    let airDetectToggle = false;
+    let airCamVisible = true;
+    let airTipShown = false;
+    const airHands = new Map(); // handedness label -> {tx, ty, sx, sy, lastSeen, cursorEl}
+    let toastTimeout = null;
+
     // DOM shorthand
     const $ = id => document.getElementById(id);
 
@@ -834,6 +845,196 @@
     }
 
     // =======================================================
+    // AIR MODE (hand tracking)
+    // =======================================================
+    // Each tracked hand acts like a touch point: index fingertip
+    // position drives the same voice API as pointer events, keyed
+    // 'air-Left' / 'air-Right' so it never collides with pointerIds.
+
+    const AIR_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+    const AIR_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+    const AIR_GRACE_MS = 250;   // keep a note alive this long after tracking loss
+    const AIR_SMOOTH = 0.35;    // coordinate smoothing alpha (per frame)
+
+    function airSupported() {
+        return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    }
+
+    async function loadAirLandmarker() {
+        const vision = await import(AIR_CDN + '/+esm');
+        const fileset = await vision.FilesetResolver.forVisionTasks(AIR_CDN + '/wasm');
+        return vision.HandLandmarker.createFromOptions(fileset, {
+            baseOptions: { modelAssetPath: AIR_MODEL_URL, delegate: 'GPU' },
+            runningMode: 'VIDEO',
+            numHands: 2
+        });
+    }
+
+    async function startAirMode() {
+        if (airActive || airLoading || !airSupported()) return;
+        airLoading = true;
+        setAirButtonState('loading');
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        try {
+            if (!airLandmarker) airLandmarker = await loadAirLandmarker();
+            airStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+            });
+            const video = $('air-video');
+            video.srcObject = airStream;
+            await video.play();
+            airActive = true;
+            document.body.classList.add('air-mode');
+            document.body.classList.toggle('air-cam-hidden', !airCamVisible);
+            setAirButtonState('active');
+            if (!airTipShown) {
+                showToast('Move right for higher pitch, up for louder');
+                airTipShown = true;
+            }
+        } catch (err) {
+            const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+            showToast(denied ? 'Camera access needed for Air Mode' : "Couldn't load hand tracking");
+            stopAirMode();
+        }
+        airLoading = false;
+    }
+
+    function stopAirMode() {
+        airActive = false;
+        document.body.classList.remove('air-mode');
+        removeAllAirHands();
+        if (airStream) {
+            airStream.getTracks().forEach(t => t.stop());
+            airStream = null;
+        }
+        $('air-video').srcObject = null;
+        setAirButtonState('idle');
+    }
+
+    function toggleAirMode() {
+        if (airActive) stopAirMode();
+        else startAirMode();
+    }
+
+    function setAirButtonState(state) {
+        for (const id of ['air-btn', 'kids-air-btn']) {
+            const btn = $(id);
+            if (!btn) continue;
+            btn.classList.toggle('loading', state === 'loading');
+            btn.classList.toggle('active', state === 'active');
+        }
+    }
+
+    // Map a mirrored normalized video coordinate into play-area pixels,
+    // matching the object-fit:cover rendering of the overlay video so
+    // cursors line up with what the user sees.
+    function airToPlayCoords(nx, ny) {
+        const pa = $('play-area');
+        const W = pa.clientWidth, H = pa.clientHeight;
+        const video = $('air-video');
+        const vw = video.videoWidth || 640, vh = video.videoHeight || 480;
+        const scale = Math.max(W / vw, H / vh);
+        const dw = vw * scale, dh = vh * scale;
+        const x = Math.max(0, Math.min(W, (W - dw) / 2 + nx * dw));
+        const y = Math.max(0, Math.min(H, (H - dh) / 2 + ny * dh));
+        return { xNorm: W ? x / W : 0, yNorm: H ? y / H : 0 };
+    }
+
+    function updateAirTracking() {
+        const video = $('air-video');
+        // Detect on every other frame (~30 Hz); smooth/render every frame
+        airDetectToggle = !airDetectToggle;
+        if (airDetectToggle && airLandmarker && video.readyState >= 2) {
+            let result = null;
+            try { result = airLandmarker.detectForVideo(video, performance.now()); } catch (_) {}
+            if (result && result.landmarks) {
+                const handedness = result.handednesses || result.handedness || [];
+                result.landmarks.forEach((lm, i) => {
+                    const label = (handedness[i] && handedness[i][0] && handedness[i][0].categoryName) || ('hand' + i);
+                    const tip = lm[8]; // index fingertip
+                    const t = airToPlayCoords(1 - tip.x, tip.y); // mirror X
+                    let hand = airHands.get(label);
+                    if (!hand) {
+                        hand = createAirHand(label, t.xNorm, t.yNorm);
+                        airHands.set(label, hand);
+                    }
+                    hand.tx = t.xNorm;
+                    hand.ty = t.yNorm;
+                    hand.lastSeen = performance.now();
+                });
+            }
+        }
+
+        const now = performance.now();
+        const pa = $('play-area');
+        const W = pa.clientWidth, H = pa.clientHeight;
+        for (const [label, hand] of airHands) {
+            if (now - hand.lastSeen > AIR_GRACE_MS) { removeAirHand(label); continue; }
+            hand.sx += (hand.tx - hand.sx) * AIR_SMOOTH;
+            hand.sy += (hand.ty - hand.sy) * AIR_SMOOTH;
+            const voice = voices.get('air-' + label);
+            if (voice) {
+                updateVoiceFromCoords(voice, { x: hand.sx * W, y: hand.sy * H, xNorm: hand.sx, yNorm: hand.sy });
+            }
+            hand.cursorEl.style.left = (hand.sx * W) + 'px';
+            hand.cursorEl.style.top = (hand.sy * H) + 'px';
+            hand.cursorEl.classList.toggle('lost', now - hand.lastSeen > 120);
+        }
+
+        $('air-hint').classList.toggle('visible', airHands.size === 0);
+    }
+
+    function createAirHand(label, xNorm, yNorm) {
+        createVoice('air-' + label);
+        const el = document.createElement('div');
+        el.className = 'air-cursor ' + (label === 'Left' ? 'hand-left' : 'hand-right');
+        $('air-cursors').appendChild(el);
+        return { tx: xNorm, ty: yNorm, sx: xNorm, sy: yNorm, lastSeen: performance.now(), cursorEl: el };
+    }
+
+    function removeAirHand(label) {
+        const hand = airHands.get(label);
+        if (!hand) return;
+        destroyVoice('air-' + label);
+        if (hand.cursorEl.parentNode) hand.cursorEl.parentNode.removeChild(hand.cursorEl);
+        airHands.delete(label);
+    }
+
+    function removeAllAirHands() {
+        for (const label of [...airHands.keys()]) removeAirHand(label);
+        $('air-hint').classList.remove('visible');
+    }
+
+    function bindAirControls() {
+        if (!airSupported()) {
+            for (const id of ['air-btn', 'kids-air-btn']) {
+                const b = $(id);
+                if (b) b.style.display = 'none';
+            }
+            return;
+        }
+        $('air-btn').addEventListener('click', toggleAirMode);
+        $('kids-air-btn').addEventListener('click', toggleAirMode);
+        $('air-cam-toggle').addEventListener('click', () => {
+            airCamVisible = !airCamVisible;
+            document.body.classList.toggle('air-cam-hidden', !airCamVisible);
+            $('air-cam-toggle').classList.toggle('cam-off', !airCamVisible);
+        });
+        // rAF pauses in hidden tabs — release air voices so no note sticks
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) removeAllAirHands();
+        });
+    }
+
+    function showToast(msg) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // =======================================================
     // PARTICLES
     // =======================================================
 
@@ -959,6 +1160,7 @@
             root.style.setProperty('--theme-glow', `rgba(${p.join(',')},0.45)`);
             root.style.setProperty('--theme-particle', `rgb(${p.join(',')})`);
         }
+        if (airActive) updateAirTracking();
         drawVisualization();
         drawParticles();
         for (const v of voices.values()) {
@@ -1592,6 +1794,9 @@
         });
         $('mic-preview-btn').addEventListener('click', playMicPreview);
 
+        // Air mode
+        bindAirControls();
+
         // Resize
         window.addEventListener('resize', resizeCanvases);
     }
@@ -1659,6 +1864,9 @@
         document.querySelectorAll('.kids-theme-btn').forEach(btn => {
             btn.addEventListener('click', () => setKidsTheme(btn.dataset.ktheme));
         });
+
+        // Air mode
+        bindAirControls();
 
         // Boost particles and start on cat
         particleAmount = 90;
@@ -1786,6 +1994,8 @@
             if (e.key === 't' || e.key === 'T') toggleMetronome();
             // M: mic sample
             if (e.key === 'm' || e.key === 'M') { if (micRecording) stopMicSample(); else startMicSample(); }
+            // A: air mode
+            if (e.key === 'a' || e.key === 'A') toggleAirMode();
         });
     }
 

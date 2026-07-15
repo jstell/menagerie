@@ -1495,3 +1495,155 @@ body.kids-theme-jungle {
     --theme-glow: rgba(68, 221, 0, 0.5);
     --theme-particle: #88ff33;
 }
+
+/* ============================
+   Air Mode (hand tracking)
+   ============================ */
+
+#air-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+    opacity: 0;
+    filter: saturate(0.5) brightness(0.9);
+    pointer-events: none;
+    transition: opacity 0.4s;
+    z-index: 0;
+}
+
+body.air-mode #air-video {
+    opacity: 0.18;
+}
+
+body.air-mode.air-cam-hidden #air-video {
+    opacity: 0;
+}
+
+#air-cursors {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 6;
+}
+
+.air-cursor {
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    border: 2px solid var(--theme-secondary);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 14px var(--theme-glow), inset 0 0 8px var(--theme-glow);
+    transition: opacity 0.15s;
+}
+
+.air-cursor::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 0 8px white;
+}
+
+.air-cursor.hand-left {
+    border-color: var(--theme-primary);
+}
+
+.air-cursor.lost {
+    opacity: 0.35;
+    border-style: dashed;
+}
+
+#air-hint {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 10px 18px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+    z-index: 6;
+}
+
+body.air-mode #air-hint.visible {
+    opacity: 1;
+}
+
+#air-cam-toggle {
+    display: none;
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    z-index: 7;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+body.air-mode #air-cam-toggle {
+    display: block;
+}
+
+#air-cam-toggle:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+#air-cam-toggle.cam-off {
+    opacity: 0.5;
+}
+
+#air-btn.loading, #kids-air-btn.loading {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    animation: recPulse 1s ease-in-out infinite;
+}
+
+#air-btn.active {
+    background: rgba(0, 212, 255, 0.15);
+    border-color: var(--accent2);
+    color: var(--accent2);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+/* Toast notifications */
+#toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    padding: 10px 20px;
+    background: rgba(20, 20, 40, 0.92);
+    border: 1px solid var(--border-color);
+    border-radius: 22px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 2000;
+}
+
+#toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}

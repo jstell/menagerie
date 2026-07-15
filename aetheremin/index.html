@@ -19,7 +19,7 @@
                 </div>
                 <button id="start-btn">Touch to Begin</button>
                 <button id="kids-start-btn">&#127926; Kids Mode</button>
-                <div id="build-info">2026-04-21 00:10 UTC (db5a80c)</div>
+                <div id="build-info">2026-07-15 23:46 UTC (b04f84d)</div>
             </div>
         </div>
 
@@ -33,14 +33,21 @@
                 <div class="touch-count" id="touch-count"></div>
                 <div class="note-display" id="note-display">--</div>
                 <div class="freq-display" id="freq-display">0 Hz</div>
+                <button id="air-btn" class="rec-btn" title="Air Mode — play with your hands via webcam (A)">&#128247; AIR</button>
                 <button id="light-mode-btn" class="rec-btn" title="Toggle Light/Dark Mode">&#9788;</button>
             </div>
         </header>
 
         <!-- Main Play Area -->
         <div id="play-area">
+            <video id="air-video" autoplay playsinline muted></video>
             <canvas id="viz-canvas"></canvas>
             <canvas id="particle-canvas"></canvas>
+
+            <!-- Air Mode hand cursors + hint -->
+            <div id="air-cursors"></div>
+            <div id="air-hint">Show your hand to the camera &#128075;</div>
+            <button id="air-cam-toggle" title="Show/hide camera view">&#128065; CAM</button>
 
             <!-- Frequency guide lines -->
             <div id="freq-guides"></div>
@@ -325,6 +332,7 @@
                 <button class="kids-btn kids-preset-btn" data-preset="whale-song">&#128011;<span>Whales</span></button>
                 <div class="kids-sep"></div>
                 <button class="kids-btn" id="kids-mic-btn">&#127908;<span>Sample</span></button>
+                <button class="kids-btn" id="kids-air-btn">&#128247;<span>Air</span></button>
             </div>
             <div class="kids-row kids-fx-row">
                 <div class="kids-fx-ctrl">
@@ -352,8 +360,11 @@
                 </div>
             </div>
         </div>
+
+        <!-- Toast notifications -->
+        <div id="toast"></div>
     </div>
 
-    <script src="aetheremin.js?v=db5a80c"></script>
+    <script src="aetheremin.js?v=b04f84d"></script>
 </body>
 </html>
