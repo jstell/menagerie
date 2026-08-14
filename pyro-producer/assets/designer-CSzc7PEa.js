@@ -1,1 +1,0 @@
-import{a as e}from"./library--yenoGR3.js";import{b as a}from"./boot-CYYjC0Kt.js";const t=new URLSearchParams(location.search).get("track")??"first-light";let r="first-light";try{e(t),r=t}catch{}a(document.getElementById("wrap"),{trackSlug:r});

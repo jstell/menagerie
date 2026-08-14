@@ -1,0 +1,1 @@
+import{a as e}from"./library-1cuVL6R9.js";import{b as a}from"./boot-CHRYM5ge.js";const t=new URLSearchParams(location.search).get("track")??"first-light";let r="first-light";try{e(t),r=t}catch{}a(document.getElementById("wrap"),{trackSlug:r});
