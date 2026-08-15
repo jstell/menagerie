@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T04:26:44.998Z",
+  "generatedAt": "2026-08-15T04:33:50.951Z",
   "rootPitchClass": 9,
   "key": "A minor (fit 90% over 59 notes, instrument bleed 6.1%)",
   "samples": {
@@ -10,6 +10,7 @@
       "gain": 5.856,
       "playbackRate": 1,
       "release": 0.015,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "snare": {
@@ -19,6 +20,7 @@
       "gain": 3.028,
       "playbackRate": 1,
       "release": 0.015,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "hat": {
@@ -28,6 +30,7 @@
       "gain": 1.574,
       "playbackRate": 1,
       "release": 0.015,
+      "chokeGroup": "hihat",
       "detectedHz": null
     },
     "openhat": {
@@ -37,6 +40,7 @@
       "gain": 1.343,
       "playbackRate": 1,
       "release": 0.015,
+      "chokeGroup": "hihat",
       "detectedHz": null
     },
     "rim": {
@@ -46,6 +50,7 @@
       "gain": 0.958,
       "playbackRate": 1,
       "release": 0.015,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "bass-sustain": {
@@ -55,6 +60,7 @@
       "gain": 0.925,
       "playbackRate": 1.47166,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": 74.75
     },
     "bass-stab": {
@@ -64,6 +70,7 @@
       "gain": 2.125,
       "playbackRate": 1.40181,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": 78.47
     },
     "scratch-fwd": {
@@ -73,6 +80,7 @@
       "gain": 0.897,
       "playbackRate": 1,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "scratch-back": {
@@ -82,6 +90,7 @@
       "gain": 1.209,
       "playbackRate": 1,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "lip-roll": {
@@ -91,6 +100,7 @@
       "gain": 1.222,
       "playbackRate": 1,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "siren": {
@@ -100,6 +110,7 @@
       "gain": 0.932,
       "playbackRate": 1,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "click": {
@@ -109,6 +120,7 @@
       "gain": 0.918,
       "playbackRate": 1,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "pitch-down": {
@@ -118,6 +130,7 @@
       "gain": 2.831,
       "playbackRate": 1,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "hey": {
@@ -127,6 +140,7 @@
       "gain": 0.857,
       "playbackRate": 1,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "yeah": {
@@ -136,6 +150,7 @@
       "gain": 0.823,
       "playbackRate": 1,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": null
     },
     "hum": {
@@ -145,6 +160,7 @@
       "gain": 3.724,
       "playbackRate": 0.75828,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": 290.13
     },
     "whistle-note": {
@@ -154,6 +170,7 @@
       "gain": 1.758,
       "playbackRate": 0.67846,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": 1297.06
     },
     "hook": {
@@ -163,6 +180,7 @@
       "gain": 1.041,
       "playbackRate": 1,
       "release": 0,
+      "chokeGroup": null,
       "detectedHz": null
     }
   }
