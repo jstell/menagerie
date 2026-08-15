@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T20:43:21.117Z",
+  "generatedAt": "2026-08-15T21:38:14.272Z",
   "rootPitchClass": 9,
   "key": "A minor (fit 90% over 59 notes, instrument bleed 6.1%)",
   "samples": {
@@ -187,7 +187,7 @@
       "playbackRate": 0.67846,
       "release": 0,
       "chokeGroup": "whistle-note",
-      "decay": 0,
+      "decay": 2,
       "detectedHz": 1297.06
     },
     "hook": {
