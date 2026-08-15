@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-08-15T02:32:27.162Z",
+  "rootPitchClass": 9,
+  "key": "A minor (fit 90% over 59 notes, instrument bleed 6.1%)",
+  "samples": {
+    "kick": {
+      "file": "kick.mp3",
+      "offset": 0,
+      "duration": 0.48,
+      "gain": 5.856,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "snare": {
+      "file": "snare.mp3",
+      "offset": 0,
+      "duration": 0.3118,
+      "gain": 3.028,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "hat": {
+      "file": "hat.mp3",
+      "offset": 0,
+      "duration": 0.48,
+      "gain": 1.574,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "openhat": {
+      "file": "openhat.mp3",
+      "offset": 0,
+      "duration": 0.6371,
+      "gain": 1.343,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "rim": {
+      "file": "rim.mp3",
+      "offset": 0,
+      "duration": 0.146,
+      "gain": 0.958,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "bass-sustain": {
+      "file": "bass-sustain.mp3",
+      "offset": 0,
+      "duration": 1.8146,
+      "gain": 0.925,
+      "playbackRate": 1.47166,
+      "detectedHz": 74.75
+    },
+    "bass-stab": {
+      "file": "bass-stab.mp3",
+      "offset": 0,
+      "duration": 0.5472,
+      "gain": 2.125,
+      "playbackRate": 1.40181,
+      "detectedHz": 78.47
+    },
+    "scratch-fwd": {
+      "file": "scratch-fwd.mp3",
+      "offset": 0.0063,
+      "duration": 0.3755,
+      "gain": 0.897,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "scratch-back": {
+      "file": "scratch-back.mp3",
+      "offset": 0,
+      "duration": 0.642,
+      "gain": 1.209,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "lip-roll": {
+      "file": "lip-roll.mp3",
+      "offset": 0,
+      "duration": 1.3409,
+      "gain": 1.222,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "siren": {
+      "file": "siren.mp3",
+      "offset": 0,
+      "duration": 1.4692,
+      "gain": 0.932,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "click": {
+      "file": "click.mp3",
+      "offset": 0.0263,
+      "duration": 0.0471,
+      "gain": 0.918,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "pitch-down": {
+      "file": "pitch-down.mp3",
+      "offset": 0,
+      "duration": 0.9112,
+      "gain": 2.831,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "hey": {
+      "file": "hey.mp3",
+      "offset": 0,
+      "duration": 0.6,
+      "gain": 0.857,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "yeah": {
+      "file": "yeah.mp3",
+      "offset": 0,
+      "duration": 0.5999,
+      "gain": 0.823,
+      "playbackRate": 1,
+      "detectedHz": null
+    },
+    "hum": {
+      "file": "hum.mp3",
+      "offset": 0,
+      "duration": 2,
+      "gain": 3.724,
+      "playbackRate": 0.75828,
+      "detectedHz": 290.13
+    },
+    "whistle-note": {
+      "file": "whistle-note.mp3",
+      "offset": 0,
+      "duration": 1.48,
+      "gain": 1.758,
+      "playbackRate": 0.67846,
+      "detectedHz": 1297.06
+    },
+    "hook": {
+      "file": "hook.mp3",
+      "offset": 0.0255,
+      "duration": 5.0762,
+      "gain": 1.041,
+      "playbackRate": 1,
+      "detectedHz": null
+    }
+  }
+}
