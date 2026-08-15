@@ -52,9 +52,9 @@
     `)},{id:"yeah",band:"voices",label:"Yeah!",role:"Punctuation, once a bar.",pattern:d(`
       . . . . . . . . . . . . y . . . |
       . . . . . . . . . . . . y . y6 .
-    `)},{id:"vocal-pad",band:"voices",label:"Vocal Pad",role:"Hummed minor triad. Soft bed.",pattern:d(`
-      m5^0^3^7 . . . . . . . . . . . . . . . |
-      m5^0^3^7 . . . . . . . . . . . . . . .
+    `)},{id:"vocal-pad",band:"voices",label:"Vocal Pad",role:"A hummed drone. Soft bed.",pattern:d(`
+      m5 . . . . . . . . . . . . . . . |
+      m5^7 . . . . . . . . . . . . . . .
     `)},{id:"whistle",band:"voices",label:"Whistle",role:"High and clear. Cuts through a full stack.",pattern:d(`
       f . . . f^7 . . . f^3 . . . f^5 . . . |
       f^7 . . . f^3 . . . f . . . f^-2 . . .

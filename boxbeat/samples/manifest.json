@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T21:38:14.272Z",
+  "generatedAt": "2026-08-15T23:07:34.470Z",
   "rootPitchClass": 9,
   "key": "A minor (fit 90% over 59 notes, instrument bleed 6.1%)",
   "samples": {
@@ -160,8 +160,8 @@
     "yeah": {
       "file": "yeah.mp3",
       "offset": 0,
-      "duration": 0.5999,
-      "gain": 0.823,
+      "duration": 0.3135,
+      "gain": 0.897,
       "playbackRate": 1,
       "release": 0,
       "chokeGroup": "yeah",
@@ -175,7 +175,7 @@
       "gain": 3.724,
       "playbackRate": 0.75828,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "hum",
       "decay": 0,
       "detectedHz": 290.13
     },
