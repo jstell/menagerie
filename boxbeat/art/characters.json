@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-08-15T19:11:30.497Z",
+  "characters": {
+    "kangol": {
+      "name": "Big Rome",
+      "width": 236,
+      "height": 520,
+      "states": {
+        "idle": "kangol-idle.png",
+        "closed": "kangol-closed.png",
+        "open": "kangol-open.png"
+      }
+    },
+    "windbreaker": {
+      "name": "Slim",
+      "width": 143,
+      "height": 520,
+      "states": {
+        "idle": "windbreaker-idle.png",
+        "closed": "windbreaker-closed.png",
+        "open": "windbreaker-open.png"
+      }
+    },
+    "ponytail": {
+      "name": "Nia",
+      "width": 172,
+      "height": 520,
+      "states": {
+        "idle": "ponytail-idle.png",
+        "closed": "ponytail-closed.png",
+        "open": "ponytail-open.png"
+      }
+    },
+    "flatcap": {
+      "name": "Pops",
+      "width": 216,
+      "height": 520,
+      "states": {
+        "idle": "flatcap-idle.png",
+        "closed": "flatcap-closed.png",
+        "open": "flatcap-open.png"
+      }
+    },
+    "satin": {
+      "name": "Deuce",
+      "width": 217,
+      "height": 520,
+      "states": {
+        "idle": "satin-idle.png",
+        "closed": "satin-closed.png",
+        "open": "satin-open.png"
+      }
+    },
+    "afro": {
+      "name": "Val",
+      "width": 171,
+      "height": 520,
+      "states": {
+        "idle": "afro-idle.png",
+        "closed": "afro-closed.png",
+        "open": "afro-open.png"
+      }
+    },
+    "rugby": {
+      "name": "Tunde",
+      "width": 195,
+      "height": 520,
+      "states": {
+        "idle": "rugby-idle.png",
+        "closed": "rugby-closed.png",
+        "open": "rugby-open.png"
+      }
+    }
+  }
+}
