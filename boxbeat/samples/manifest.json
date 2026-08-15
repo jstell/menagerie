@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T20:26:05.352Z",
+  "generatedAt": "2026-08-15T20:43:21.117Z",
   "rootPitchClass": 9,
   "key": "A minor (fit 90% over 59 notes, instrument bleed 6.1%)",
   "samples": {
@@ -65,7 +65,7 @@
       "gain": 0.925,
       "playbackRate": 1.47166,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "bass-sustain",
       "decay": 0,
       "detectedHz": 74.75
     },
@@ -76,7 +76,7 @@
       "gain": 2.125,
       "playbackRate": 1.40181,
       "release": 0.015,
-      "chokeGroup": null,
+      "chokeGroup": "bass-stab",
       "decay": 0.28,
       "detectedHz": 78.47
     },
@@ -87,7 +87,7 @@
       "gain": 0.897,
       "playbackRate": 1,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "scratch-fwd",
       "decay": 0,
       "detectedHz": null
     },
@@ -98,7 +98,7 @@
       "gain": 1.209,
       "playbackRate": 1,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "scratch-back",
       "decay": 0,
       "detectedHz": null
     },
@@ -109,7 +109,7 @@
       "gain": 1.222,
       "playbackRate": 1,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "lip-roll",
       "decay": 0,
       "detectedHz": null
     },
@@ -120,7 +120,7 @@
       "gain": 0.932,
       "playbackRate": 1,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "siren",
       "decay": 0,
       "detectedHz": null
     },
@@ -142,7 +142,7 @@
       "gain": 2.831,
       "playbackRate": 1,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "pitch-down",
       "decay": 0,
       "detectedHz": null
     },
@@ -153,7 +153,7 @@
       "gain": 0.857,
       "playbackRate": 1,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "hey",
       "decay": 0,
       "detectedHz": null
     },
@@ -164,7 +164,7 @@
       "gain": 0.823,
       "playbackRate": 1,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "yeah",
       "decay": 0,
       "detectedHz": null
     },
@@ -186,7 +186,7 @@
       "gain": 1.758,
       "playbackRate": 0.67846,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "whistle-note",
       "decay": 0,
       "detectedHz": 1297.06
     },
@@ -197,7 +197,7 @@
       "gain": 1.041,
       "playbackRate": 1,
       "release": 0,
-      "chokeGroup": null,
+      "chokeGroup": "hook",
       "decay": 0,
       "detectedHz": null
     }
