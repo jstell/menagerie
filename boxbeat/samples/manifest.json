@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T18:46:09.922Z",
+  "generatedAt": "2026-08-15T20:26:05.352Z",
   "rootPitchClass": 9,
   "key": "A minor (fit 90% over 59 notes, instrument bleed 6.1%)",
   "samples": {
@@ -72,12 +72,12 @@
     "bass-stab": {
       "file": "bass-stab.mp3",
       "offset": 0,
-      "duration": 0.5472,
+      "duration": 0.3,
       "gain": 2.125,
       "playbackRate": 1.40181,
-      "release": 0,
+      "release": 0.015,
       "chokeGroup": null,
-      "decay": 0,
+      "decay": 0.28,
       "detectedHz": 78.47
     },
     "scratch-fwd": {
