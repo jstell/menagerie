@@ -1,46 +1,51 @@
 {
-  "generatedAt": "2026-08-15T02:32:27.162Z",
+  "generatedAt": "2026-08-15T04:26:44.998Z",
   "rootPitchClass": 9,
   "key": "A minor (fit 90% over 59 notes, instrument bleed 6.1%)",
   "samples": {
     "kick": {
       "file": "kick.mp3",
       "offset": 0,
-      "duration": 0.48,
+      "duration": 0.25,
       "gain": 5.856,
       "playbackRate": 1,
+      "release": 0.015,
       "detectedHz": null
     },
     "snare": {
       "file": "snare.mp3",
-      "offset": 0,
-      "duration": 0.3118,
+      "offset": 0.0144,
+      "duration": 0.22,
       "gain": 3.028,
       "playbackRate": 1,
+      "release": 0.015,
       "detectedHz": null
     },
     "hat": {
       "file": "hat.mp3",
       "offset": 0,
-      "duration": 0.48,
+      "duration": 0.08,
       "gain": 1.574,
       "playbackRate": 1,
+      "release": 0.015,
       "detectedHz": null
     },
     "openhat": {
       "file": "openhat.mp3",
-      "offset": 0,
-      "duration": 0.6371,
+      "offset": 0.066,
+      "duration": 0.3,
       "gain": 1.343,
       "playbackRate": 1,
+      "release": 0.015,
       "detectedHz": null
     },
     "rim": {
       "file": "rim.mp3",
       "offset": 0,
-      "duration": 0.146,
+      "duration": 0.12,
       "gain": 0.958,
       "playbackRate": 1,
+      "release": 0.015,
       "detectedHz": null
     },
     "bass-sustain": {
@@ -49,6 +54,7 @@
       "duration": 1.8146,
       "gain": 0.925,
       "playbackRate": 1.47166,
+      "release": 0,
       "detectedHz": 74.75
     },
     "bass-stab": {
@@ -57,6 +63,7 @@
       "duration": 0.5472,
       "gain": 2.125,
       "playbackRate": 1.40181,
+      "release": 0,
       "detectedHz": 78.47
     },
     "scratch-fwd": {
@@ -65,6 +72,7 @@
       "duration": 0.3755,
       "gain": 0.897,
       "playbackRate": 1,
+      "release": 0,
       "detectedHz": null
     },
     "scratch-back": {
@@ -73,6 +81,7 @@
       "duration": 0.642,
       "gain": 1.209,
       "playbackRate": 1,
+      "release": 0,
       "detectedHz": null
     },
     "lip-roll": {
@@ -81,6 +90,7 @@
       "duration": 1.3409,
       "gain": 1.222,
       "playbackRate": 1,
+      "release": 0,
       "detectedHz": null
     },
     "siren": {
@@ -89,14 +99,16 @@
       "duration": 1.4692,
       "gain": 0.932,
       "playbackRate": 1,
+      "release": 0,
       "detectedHz": null
     },
     "click": {
       "file": "click.mp3",
-      "offset": 0.0263,
-      "duration": 0.0471,
+      "offset": 0.0374,
+      "duration": 0.0359,
       "gain": 0.918,
       "playbackRate": 1,
+      "release": 0,
       "detectedHz": null
     },
     "pitch-down": {
@@ -105,6 +117,7 @@
       "duration": 0.9112,
       "gain": 2.831,
       "playbackRate": 1,
+      "release": 0,
       "detectedHz": null
     },
     "hey": {
@@ -113,6 +126,7 @@
       "duration": 0.6,
       "gain": 0.857,
       "playbackRate": 1,
+      "release": 0,
       "detectedHz": null
     },
     "yeah": {
@@ -121,6 +135,7 @@
       "duration": 0.5999,
       "gain": 0.823,
       "playbackRate": 1,
+      "release": 0,
       "detectedHz": null
     },
     "hum": {
@@ -129,6 +144,7 @@
       "duration": 2,
       "gain": 3.724,
       "playbackRate": 0.75828,
+      "release": 0,
       "detectedHz": 290.13
     },
     "whistle-note": {
@@ -137,6 +153,7 @@
       "duration": 1.48,
       "gain": 1.758,
       "playbackRate": 0.67846,
+      "release": 0,
       "detectedHz": 1297.06
     },
     "hook": {
@@ -145,6 +162,7 @@
       "duration": 5.0762,
       "gain": 1.041,
       "playbackRate": 1,
+      "release": 0,
       "detectedHz": null
     }
   }
