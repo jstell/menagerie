@@ -3,7 +3,7 @@
       B . . . k . . . . . B . k . B .
     `)},{id:"hi-hat-run",band:"beats",label:"Hi-Hat Run",role:"Lives up top, never collides.",pattern:h(`
       t . t5 t5 t . t5 . t . t5 t5 t . t5 . |
-      t . t5 t5 t . t5 . t . t5 t5 t . t5 T
+      t . t5 t5 t . t5 . t . t5 t5 t . t5 T5
     `)},{id:"double-time",band:"beats",label:"Double Time",role:"Energy injector.",pattern:h(`
       B . B7 . k . . B7 . B . . k . k7 . |
       B . B7 . k . . B7 . B . . k . k7 k7
