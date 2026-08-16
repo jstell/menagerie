@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-08-15T23:07:34.470Z",
+  "generatedAt": "2026-08-15T23:57:00.237Z",
   "rootPitchClass": 9,
   "key": "A minor (fit 90% over 59 notes, instrument bleed 6.1%)",
   "samples": {
     "kick": {
       "file": "kick.mp3",
-      "offset": 0,
-      "duration": 0.25,
-      "gain": 5.856,
+      "offset": 0.0275,
+      "duration": 0.1727,
+      "gain": 0.897,
       "playbackRate": 1,
-      "release": 0.015,
+      "release": 0,
       "chokeGroup": null,
       "decay": 0,
       "detectedHz": null
