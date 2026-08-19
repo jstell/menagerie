@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T10:48:42.769Z",
+  "generatedAt": "2026-08-19T12:38:21.046Z",
   "rootPitchClass": 9,
   "key": "A minor (fit 90% over 59 notes, instrument bleed 6.1%)",
   "samples": {
@@ -209,6 +209,17 @@
       "playbackRate": 1,
       "release": 0,
       "chokeGroup": "hook-low",
+      "decay": 0,
+      "detectedHz": null
+    },
+    "hook-high": {
+      "file": "hook-high.mp3",
+      "offset": 0.051,
+      "duration": 3.5671,
+      "gain": 1.24,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": "hook-high",
       "decay": 0,
       "detectedHz": null
     }
