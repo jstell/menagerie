@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-08-21T01:24:24.522Z",
+  "characters": {
+    "sonny": {
+      "name": "Sonny",
+      "width": 221,
+      "height": 520,
+      "states": {
+        "idle": "sonny-idle.png",
+        "closed": "sonny-closed.png",
+        "open": "sonny-open.png"
+      }
+    },
+    "marv": {
+      "name": "Marv",
+      "width": 188,
+      "height": 520,
+      "states": {
+        "idle": "marv-idle.png",
+        "closed": "marv-closed.png",
+        "open": "marv-open.png"
+      }
+    },
+    "ray": {
+      "name": "Ray",
+      "width": 204,
+      "height": 520,
+      "states": {
+        "idle": "ray-idle.png",
+        "closed": "ray-closed.png",
+        "open": "ray-open.png"
+      }
+    },
+    "duke": {
+      "name": "Duke",
+      "width": 182,
+      "height": 520,
+      "states": {
+        "idle": "duke-idle.png",
+        "closed": "duke-closed.png",
+        "open": "duke-open.png"
+      }
+    },
+    "peggy": {
+      "name": "Peggy",
+      "width": 201,
+      "height": 520,
+      "states": {
+        "idle": "peggy-idle.png",
+        "closed": "peggy-closed.png",
+        "open": "peggy-open.png"
+      }
+    }
+  }
+}

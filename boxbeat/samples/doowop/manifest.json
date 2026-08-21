@@ -1,0 +1,183 @@
+{
+  "generatedAt": "2026-08-21T00:55:46.163Z",
+  "rootPitchClass": 9,
+  "key": "A major (fit 92% over 63 notes, tonic 38%, instrument bleed 13.9%)",
+  "samples": {
+    "snap": {
+      "file": "snap.mp3",
+      "offset": 0,
+      "duration": 0.0867,
+      "gain": 1.314,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "clap": {
+      "file": "clap.mp3",
+      "offset": 0.0147,
+      "duration": 0.083,
+      "gain": 0.883,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "stomp": {
+      "file": "stomp.mp3",
+      "offset": 0,
+      "duration": 0.3,
+      "gain": 22.982,
+      "playbackRate": 1,
+      "release": 0.015,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "slap": {
+      "file": "slap.mp3",
+      "offset": 0,
+      "duration": 0.1906,
+      "gain": 1.374,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "bom": {
+      "file": "bom.mp3",
+      "offset": 0,
+      "duration": 0.42,
+      "gain": 0.921,
+      "playbackRate": 1.10998,
+      "release": 0.015,
+      "chokeGroup": "bom",
+      "decay": 0,
+      "detectedHz": 99.1
+    },
+    "dip": {
+      "file": "dip.mp3",
+      "offset": 0,
+      "duration": 0.22,
+      "gain": 3.356,
+      "playbackRate": 0.86803,
+      "release": 0.015,
+      "chokeGroup": "dip",
+      "decay": 0,
+      "detectedHz": 253.45
+    },
+    "bass-hold": {
+      "file": "bass-hold.mp3",
+      "offset": 0,
+      "duration": 2.2744,
+      "gain": 1.141,
+      "playbackRate": 1.18481,
+      "release": 0,
+      "chokeGroup": "bass-hold",
+      "decay": 0,
+      "detectedHz": 92.84
+    },
+    "ooh": {
+      "file": "ooh.mp3",
+      "offset": 0.0761,
+      "duration": 2.3987,
+      "gain": 5.125,
+      "playbackRate": 0.84807,
+      "release": 0,
+      "chokeGroup": "ooh",
+      "decay": 0,
+      "detectedHz": 259.41
+    },
+    "ahh": {
+      "file": "ahh.mp3",
+      "offset": 0,
+      "duration": 2.48,
+      "gain": 3.057,
+      "playbackRate": 0.86304,
+      "release": 0,
+      "chokeGroup": "ahh",
+      "decay": 0,
+      "detectedHz": 254.91
+    },
+    "doo": {
+      "file": "doo.mp3",
+      "offset": 0.0638,
+      "duration": 0.3,
+      "gain": 1.162,
+      "playbackRate": 1.29705,
+      "release": 0.015,
+      "chokeGroup": "doo",
+      "decay": 0,
+      "detectedHz": 169.62
+    },
+    "sh": {
+      "file": "sh.mp3",
+      "offset": 0.052,
+      "duration": 0.28,
+      "gain": 1.021,
+      "playbackRate": 1,
+      "release": 0.015,
+      "chokeGroup": null,
+      "decay": 0.24,
+      "detectedHz": null
+    },
+    "wah": {
+      "file": "wah.mp3",
+      "offset": 0,
+      "duration": 1.5813,
+      "gain": 2.573,
+      "playbackRate": 0.94785,
+      "release": 0,
+      "chokeGroup": "wah",
+      "decay": 0,
+      "detectedHz": 464.21
+    },
+    "lead": {
+      "file": "lead.mp3",
+      "offset": 0.0251,
+      "duration": 5.141,
+      "gain": 1.051,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": "lead",
+      "decay": 0,
+      "detectedHz": null
+    },
+    "lead-low": {
+      "file": "lead-low.mp3",
+      "offset": 0.0503,
+      "duration": 4.8912,
+      "gain": 1.846,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": "lead-low",
+      "decay": 0,
+      "detectedHz": null
+    },
+    "lead-falsetto": {
+      "file": "lead-falsetto.mp3",
+      "offset": 0.0551,
+      "duration": 5.2484,
+      "gain": 1.216,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": "lead-falsetto",
+      "decay": 0,
+      "detectedHz": null
+    },
+    "lead-girl": {
+      "file": "lead-girl.mp3",
+      "offset": 0.048,
+      "duration": 6.5975,
+      "gain": 1.755,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": "lead-girl",
+      "decay": 0,
+      "detectedHz": null
+    }
+  }
+}
