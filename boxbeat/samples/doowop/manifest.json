@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-21T00:55:46.163Z",
+  "generatedAt": "2026-08-21T01:39:09.531Z",
   "rootPitchClass": 9,
   "key": "A major (fit 92% over 63 notes, tonic 38%, instrument bleed 13.9%)",
   "samples": {
@@ -104,14 +104,14 @@
     },
     "doo": {
       "file": "doo.mp3",
-      "offset": 0.0638,
+      "offset": 0,
       "duration": 0.3,
-      "gain": 1.162,
-      "playbackRate": 1.29705,
+      "gain": 0.963,
+      "playbackRate": 0.93787,
       "release": 0.015,
       "chokeGroup": "doo",
       "decay": 0,
-      "detectedHz": 169.62
+      "detectedHz": 234.57
     },
     "sh": {
       "file": "sh.mp3",
