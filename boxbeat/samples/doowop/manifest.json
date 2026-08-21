@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-21T01:39:09.531Z",
+  "generatedAt": "2026-08-21T02:13:41.338Z",
   "rootPitchClass": 9,
   "key": "A major (fit 92% over 63 notes, tonic 38%, instrument bleed 13.9%)",
   "samples": {
@@ -72,24 +72,24 @@
     "bass-hold": {
       "file": "bass-hold.mp3",
       "offset": 0,
-      "duration": 2.2744,
-      "gain": 1.141,
-      "playbackRate": 1.18481,
+      "duration": 2.3809,
+      "gain": 1.128,
+      "playbackRate": 1.02268,
       "release": 0,
       "chokeGroup": "bass-hold",
       "decay": 0,
-      "detectedHz": 92.84
+      "detectedHz": 107.56
     },
     "ooh": {
       "file": "ooh.mp3",
-      "offset": 0.0761,
-      "duration": 2.3987,
-      "gain": 5.125,
-      "playbackRate": 0.84807,
+      "offset": 0,
+      "duration": 2.4212,
+      "gain": 2.681,
+      "playbackRate": 0.93787,
       "release": 0,
       "chokeGroup": "ooh",
       "decay": 0,
-      "detectedHz": 259.41
+      "detectedHz": 234.57
     },
     "ahh": {
       "file": "ahh.mp3",
@@ -127,13 +127,13 @@
     "wah": {
       "file": "wah.mp3",
       "offset": 0,
-      "duration": 1.5813,
-      "gain": 2.573,
-      "playbackRate": 0.94785,
+      "duration": 1.5724,
+      "gain": 2.958,
+      "playbackRate": 0.86803,
       "release": 0,
       "chokeGroup": "wah",
       "decay": 0,
-      "detectedHz": 464.21
+      "detectedHz": 506.9
     },
     "lead": {
       "file": "lead.mp3",
