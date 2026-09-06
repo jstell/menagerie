@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-21T02:13:41.338Z",
+  "generatedAt": "2026-09-06T21:17:37.611Z",
   "rootPitchClass": 9,
   "key": "A major (fit 92% over 63 notes, tonic 38%, instrument bleed 13.9%)",
   "samples": {
@@ -52,7 +52,7 @@
       "offset": 0,
       "duration": 0.42,
       "gain": 0.921,
-      "playbackRate": 1.10998,
+      "playbackRate": 0.93338,
       "release": 0.015,
       "chokeGroup": "bom",
       "decay": 0,
@@ -63,7 +63,7 @@
       "offset": 0,
       "duration": 0.22,
       "gain": 3.356,
-      "playbackRate": 0.86803,
+      "playbackRate": 0.72992,
       "release": 0.015,
       "chokeGroup": "dip",
       "decay": 0,
@@ -74,7 +74,7 @@
       "offset": 0,
       "duration": 2.3809,
       "gain": 1.128,
-      "playbackRate": 1.02268,
+      "playbackRate": 0.85996,
       "release": 0,
       "chokeGroup": "bass-hold",
       "decay": 0,
@@ -107,7 +107,7 @@
       "offset": 0,
       "duration": 0.3,
       "gain": 0.963,
-      "playbackRate": 0.93787,
+      "playbackRate": 0.78865,
       "release": 0.015,
       "chokeGroup": "doo",
       "decay": 0,
@@ -178,6 +178,61 @@
       "chokeGroup": "lead-girl",
       "decay": 0,
       "detectedHz": null
+    },
+    "bom-girl": {
+      "file": "bom-girl.mp3",
+      "offset": 0,
+      "duration": 0.42,
+      "gain": 1.195,
+      "playbackRate": 0.72573,
+      "release": 0.015,
+      "chokeGroup": "bom-girl",
+      "decay": 0,
+      "detectedHz": 254.91
+    },
+    "dip-girl": {
+      "file": "dip-girl.mp3",
+      "offset": 0,
+      "duration": 0.22,
+      "gain": 2.096,
+      "playbackRate": 0.67539,
+      "release": 0.015,
+      "chokeGroup": "dip-girl",
+      "decay": 0,
+      "detectedHz": 273.91
+    },
+    "bass-hold-girl": {
+      "file": "bass-hold-girl.mp3",
+      "offset": 0,
+      "duration": 2.362,
+      "gain": 5.861,
+      "playbackRate": 0.84738,
+      "release": 0,
+      "chokeGroup": "bass-hold-girl",
+      "decay": 0,
+      "detectedHz": 218.32
+    },
+    "ooh-low": {
+      "file": "ooh-low.mp3",
+      "offset": 0,
+      "duration": 2.3253,
+      "gain": 1.764,
+      "playbackRate": 1.12118,
+      "release": 0,
+      "chokeGroup": "ooh-low",
+      "decay": 0,
+      "detectedHz": 147
+    },
+    "ahh-low": {
+      "file": "ahh-low.mp3",
+      "offset": 0,
+      "duration": 2.1541,
+      "gain": 2.324,
+      "playbackRate": 0.79978,
+      "release": 0,
+      "chokeGroup": "ahh-low",
+      "decay": 0,
+      "detectedHz": 206.07
     }
   }
 }
