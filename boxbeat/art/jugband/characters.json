@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-09-26T01:09:05.007Z",
+  "characters": {
+    "hollis": {
+      "name": "Hollis",
+      "width": 210,
+      "height": 520,
+      "states": {
+        "idle": "hollis-idle.png",
+        "closed": "hollis-closed.png",
+        "open": "hollis-open.png"
+      }
+    },
+    "amos": {
+      "name": "Amos",
+      "width": 290,
+      "height": 520,
+      "states": {
+        "idle": "amos-idle.png",
+        "closed": "amos-closed.png",
+        "open": "amos-open.png"
+      }
+    },
+    "cyrus": {
+      "name": "Cyrus",
+      "width": 302,
+      "height": 520,
+      "states": {
+        "idle": "cyrus-idle.png",
+        "closed": "cyrus-closed.png",
+        "open": "cyrus-open.png"
+      }
+    },
+    "mae": {
+      "name": "Mae",
+      "width": 282,
+      "height": 520,
+      "states": {
+        "idle": "mae-idle.png",
+        "closed": "mae-closed.png",
+        "open": "mae-open.png"
+      }
+    },
+    "pip": {
+      "name": "Pip",
+      "width": 173,
+      "height": 520,
+      "stature": 0.74,
+      "states": {
+        "idle": "pip-idle.png",
+        "closed": "pip-closed.png",
+        "open": "pip-open.png"
+      }
+    }
+  }
+}

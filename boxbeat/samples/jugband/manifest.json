@@ -1,0 +1,227 @@
+{
+  "generatedAt": "2026-09-26T01:15:45.269Z",
+  "rootPitchClass": 0,
+  "key": "C major (as written; measured fallback — hook is chromatic (best fit 76%), instrument bleed 8.4%)",
+  "samples": {
+    "slap": {
+      "file": "slap.mp3",
+      "offset": 0,
+      "duration": 0.1936,
+      "gain": 6.317,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "pat": {
+      "file": "pat.mp3",
+      "offset": 0.0408,
+      "duration": 0.104,
+      "gain": 0.934,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "clop": {
+      "file": "clop.mp3",
+      "offset": 0.0072,
+      "duration": 0.15,
+      "gain": 1.803,
+      "playbackRate": 1,
+      "release": 0.015,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "tap": {
+      "file": "tap.mp3",
+      "offset": 0.0239,
+      "duration": 0.0809,
+      "gain": 1.207,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "stomp": {
+      "file": "stomp.mp3",
+      "offset": 0,
+      "duration": 0.1992,
+      "gain": 0.93,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "jug": {
+      "file": "jug.mp3",
+      "offset": 0.0168,
+      "duration": 0.9366,
+      "gain": 0.928,
+      "playbackRate": 0.99673,
+      "release": 0,
+      "chokeGroup": "jug",
+      "decay": 0,
+      "detectedHz": 123.88
+    },
+    "whoop": {
+      "file": "whoop.mp3",
+      "offset": 0.0044,
+      "duration": 0.9548,
+      "gain": 1.151,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "dang": {
+      "file": "dang.mp3",
+      "offset": 0.0001,
+      "duration": 1.1108,
+      "gain": 1.206,
+      "playbackRate": 1.02665,
+      "release": 0,
+      "chokeGroup": "dang",
+      "decay": 0,
+      "detectedHz": 190.91
+    },
+    "chk": {
+      "file": "chk.mp3",
+      "offset": 0.0799,
+      "duration": 0.15,
+      "gain": 1.09,
+      "playbackRate": 1,
+      "release": 0.015,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "chuff": {
+      "file": "chuff.mp3",
+      "offset": 0.0064,
+      "duration": 0.2,
+      "gain": 1.009,
+      "playbackRate": 1,
+      "release": 0.015,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "buzz": {
+      "file": "buzz.mp3",
+      "offset": 0,
+      "duration": 1.48,
+      "gain": 1.419,
+      "playbackRate": 1.05017,
+      "release": 0,
+      "chokeGroup": "buzz",
+      "decay": 0,
+      "detectedHz": 156.94
+    },
+    "whistle": {
+      "file": "whistle.mp3",
+      "offset": 0.1128,
+      "duration": 0.8678,
+      "gain": 1.984,
+      "playbackRate": 0.98664,
+      "release": 0,
+      "chokeGroup": "whistle",
+      "decay": 0,
+      "detectedHz": 1336.36
+    },
+    "dee": {
+      "file": "dee.mp3",
+      "offset": 0.0077,
+      "duration": 0.842,
+      "gain": 3.337,
+      "playbackRate": 1.03881,
+      "release": 0,
+      "chokeGroup": "dee",
+      "decay": 0,
+      "detectedHz": 282.69
+    },
+    "holler": {
+      "file": "holler.mp3",
+      "offset": 0,
+      "duration": 1.3823,
+      "gain": 0.909,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "lead": {
+      "file": "lead.mp3",
+      "offset": 0.0251,
+      "duration": 4.3924,
+      "gain": 0.973,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": "lead",
+      "decay": 0,
+      "detectedHz": null
+    },
+    "dang-girl": {
+      "file": "dang-girl.mp3",
+      "offset": 0,
+      "duration": 1.1,
+      "gain": 13.409,
+      "playbackRate": 1.01332,
+      "release": 0,
+      "chokeGroup": "dang-girl",
+      "decay": 0,
+      "detectedHz": 193.42
+    },
+    "buzz-girl": {
+      "file": "buzz-girl.mp3",
+      "offset": 0,
+      "duration": 1.3809,
+      "gain": 3.471,
+      "playbackRate": 1.03881,
+      "release": 0,
+      "chokeGroup": "buzz-girl",
+      "decay": 0,
+      "detectedHz": 282.69
+    },
+    "dee-girl": {
+      "file": "dee-girl.mp3",
+      "offset": 0.0075,
+      "duration": 0.9128,
+      "gain": 6.128,
+      "playbackRate": 0.99411,
+      "release": 0,
+      "chokeGroup": "dee-girl",
+      "decay": 0,
+      "detectedHz": 331.58
+    },
+    "holler-girl": {
+      "file": "holler-girl.mp3",
+      "offset": 0,
+      "duration": 1.3141,
+      "gain": 0.91,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": null,
+      "decay": 0,
+      "detectedHz": null
+    },
+    "lead-girl": {
+      "file": "lead-girl.mp3",
+      "offset": 0.0529,
+      "duration": 5.7689,
+      "gain": 0.986,
+      "playbackRate": 1,
+      "release": 0,
+      "chokeGroup": "lead-girl",
+      "decay": 0,
+      "detectedHz": null
+    }
+  }
+}
