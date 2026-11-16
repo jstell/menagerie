@@ -4,13 +4,19 @@
 (() => {
   const A = window.A, C = A.C, TAU = A.TAU;
   const NS = 1.25, OS = 1.2;   // people and road creatures are drawn larger than their base size
+  const ZK = ['c', 't', 'j', 'r', 'f'];
+  // little tunes, as scale degrees (0 = tonic, 7 = the octave above)
+  const MOTIFS = {
+    maj: [[0, 2, 4, 7, 4, 2, 0, 2], [4, 5, 6, 7, 6, 5, 4, 2], [0, 4, 2, 5, 4, 7, 5, 4], [7, 6, 5, 4, 3, 2, 1, 0], [0, 1, 2, 0, 2, 3, 4, 4], [2, 4, 7, 9, 7, 4, 2, 0], [4, 2, 0, 2, 4, 4, 4, 2]],
+    min: [[0, 2, 4, 7, 4, 2, 0, -1], [4, 3, 2, 1, 0, 1, 2, 4], [0, 1, 2, 4, 2, 1, 0, -3], [7, 5, 4, 2, 4, 5, 7, 7], [0, 2, 3, 4, 3, 2, 0, 0], [4, 5, 4, 2, 0, 2, 4, 7]],
+  };
   const NOTE_COLS = [C.red, C.ochre, C.cerulean, C.leaf, C.lavender, C.rose, C.teal];
 
   const Ac = A.actors = {
     reset(x0, playing) {
       this.sky = []; this.road = []; this.npcs = []; this.parts = [];
       this.playing = playing; this.nextNote = x0 + 1500; this.nextHaz = x0 + 3200; this.nextOb = x0 + 2600; this.nextBalloon = x0 + 5200; this.nextFlock = x0 + 600;
-      this.r = A.rng(Date.now() & 0xffff | 1); this.id = 0; this.flocks = [];
+      this.r = A.rng(Date.now() & 0xffff | 1); this.id = 0; this.pid = 0; this.flocks = [];
     },
     // scenery spawner hook: add living company near certain props
     onScenery(it, zk, gap, r) {
@@ -47,12 +53,15 @@
       // strings of notes that invite the kite to swoop
       while (this.nextNote < edge) {
         const x0 = this.nextNote, kind = r.pick(['arc', 'arc', 'wave', 'ramp', 'dip']), n = r.int(5, 8), yc = r.range(190, 360), amp = r.range(50, 120) * r.sign(), col = r.pick(NOTE_COLS);
+        // each string is a written phrase: a motif in the key of its tableau, laid out on a stave
+        const zk = ZK[A.zone(x0 + n * 32).i], motif = r.pick(MOTIFS[zk === 't' || zk === 'f' ? 'min' : 'maj']), pid = ++this.pid, pts = [];
         for (let i = 0; i < n; i++) {
           const u = i / (n - 1), x = x0 + i * 64;
           let y = kind === 'arc' ? yc - Math.sin(u * Math.PI) * amp : kind === 'wave' ? yc + Math.sin(u * TAU) * Math.abs(amp) * 0.7 : kind === 'ramp' ? yc + (u - 0.5) * amp * 1.6 : yc + Math.sin(u * Math.PI) * Math.abs(amp);
-          y = A.clamp(y, 86, A.ground(x) - 120);
-          this.sky.push({ k: 'note', x, y, col, v: (i + this.id) % 3, id: ++this.id, ph: i * 0.6 });
+          y = A.clamp(y, 86, A.ground(x) - 120); pts.push([x, y]);
         }
+        this.sky.push({ k: 'staff', x: x0 + n * 64, pts: [[pts[0][0] - 40, pts[0][1]], ...pts, [pts[n - 1][0] + 34, pts[n - 1][1]]], id: ++this.id });
+        pts.forEach(([x, y], i) => this.sky.push({ k: 'note', x, y, col, v: (i + this.id) % 3, id: ++this.id, ph: i * 0.6, zk, deg: motif[i % motif.length], pid, pn: n }));
         this.nextNote += n * 64 + r.range(260, 640) * (1.15 - diff * 0.35);
       }
       // weather and birds
@@ -72,7 +81,7 @@
           o.hw *= OS; o.h *= OS;
           this.road.push(o);
           // a reward floating over it for a well-timed hop
-          for (let i = 0; i < 3; i++) this.sky.push({ k: 'note', x: o.x - 46 + i * 46, y: A.ground(o.x) - 116 - (i === 1 ? 30 : 0), low: true, col: C.ochre, v: i, id: ++this.id, ph: i });
+          for (let i = 0; i < 3; i++) this.sky.push({ k: 'note', x: o.x - 46 + i * 46, y: A.ground(o.x) - 116 - (i === 1 ? 30 : 0), low: true, col: C.ochre, v: i, id: ++this.id, ph: i, zk, deg: [-7, -3, -5][i] });
         }
         this.nextOb += r.range(880, 1650) * (1.2 - diff * 0.5);
       }
@@ -87,6 +96,10 @@
       if (this.playing) this.spawn(G);
       // swallows crossing now and then (pure decoration)
       if (cam > this.nextFlock) { this.nextFlock = cam + this.r.range(1400, 3200); const y = this.r.range(90, 300), n = this.r.int(3, 7); for (let i = 0; i < n; i++) this.flocks.push({ x: cam + W + 60 + i * this.r.range(18, 40), y: y + this.r.range(-40, 40), v: -this.r.range(170, 240), ph: this.r() * 9 }); }
+      // petals loosed from the garden's trees; butterflies over the fields
+      const zh = A.zone(cam + W * 0.6);
+      if (zh.j > 0.5 && Math.random() < dt * 3.2) this.parts.push({ k: 'petal', x: cam + Math.random() * (W + 300), y: 230 + Math.random() * 230, vx: -50 - Math.random() * 60, vy: 26 + Math.random() * 34, life: 0, max: 6, rot: Math.random() * 6, sp: 2 + Math.random() * 3, col: ['#f2b8c0', '#ffffff', '#f7d3d0', '#e89aa8'][(Math.random() * 4) | 0], r: 3 + Math.random() * 2.5 });
+      if (zh.c > 0.5 && Math.random() < dt * 0.35) this.parts.push({ k: 'fly', x: cam + W + 40, y: 380 + Math.random() * 150, vx: -40 - Math.random() * 50, vy: 0, life: 0, max: 22, y0: 0, ph: Math.random() * 9, col: [C.ochre, '#ffffff', C.cerulean, C.rose][(Math.random() * 4) | 0] });
       // gusts of wind, drawn the way old illustrators drew them
       if (Math.random() < dt * 0.55) this.parts.push({ k: 'gust', x: cam + W + 80, y: 70 + Math.random() * 330, vx: -230 - Math.random() * 160, life: 0, max: 4, len: 50 + Math.random() * 90, seed: (Math.random() * 1e5) | 0, dir: Math.random() < 0.5 ? 1 : -1 });
       for (const f of this.flocks) { f.x += f.v * dt; f.y += Math.sin(t * 2 + f.ph) * 22 * dt; }
@@ -164,6 +177,13 @@
           A.P.bow(g, x + Math.sin(p.life * 5) * 16, y, p.life * 4, p.col, 1.1 - u * 0.3);
         } else if (p.k === 'mini') {
           c.globalAlpha = Math.min(1, u * 6) * (1 - u); A.drawNote(g, x + Math.sin(p.life * 3 + p.ph) * 6, y, 0.5, p.col, 0, false); c.globalAlpha = 1;
+        } else if (p.k === 'petal') {
+          const a = p.rot + p.life * p.sp, k2 = Math.abs(Math.cos(p.life * p.sp * 0.7)) * 0.8 + 0.2;
+          c.globalAlpha = Math.min(1, u * 8, (1 - u) * 3) * 0.9; c.fillStyle = p.col; c.beginPath(); c.ellipse(x + Math.sin(p.life * 2 + p.rot) * 14, y, p.r, p.r * 0.55 * k2, a, 0, TAU); c.fill(); c.globalAlpha = 1;
+        } else if (p.k === 'fly') {
+          const fx = x + Math.sin(p.life * 1.3 + p.ph) * 26, fy = y + Math.sin(p.life * 2.1 + p.ph) * 22 + Math.sin(p.life * 0.5) * 30, fl = Math.abs(Math.sin(p.life * 16 + p.ph));
+          for (const d of [-1, 1]) { const w = [[fx, fy], [fx + d * 7 * fl, fy - 7], [fx + d * 8 * fl, fy + 1], [fx + d * 4 * fl, fy + 5]]; g.wash(w, p.col, { a: 0.9, spread: 0.3, mottle: false, step: 99 }); g.line(w, { closed: true, w: 0.7, step: 99, dbl: false }); }
+          g.line([[fx, fy - 4], [fx, fy + 4]], { w: 1.2, dbl: false, taper: false });
         } else if (p.k === 'gust') {
           const a = Math.min(1, u * 8, (1 - u) * 4) * 0.42, wv = Math.sin(p.life * 5 + p.seed) * 4;
           g.line(A.bezPts([x + p.len, y + wv], [x + p.len * 0.6, y - 7 - wv], [x + p.len * 0.3, y + 7], [x, y], 10), { w: 1.1, a, step: 99, dbl: false, c: C.inkSoft });
@@ -181,7 +201,17 @@
       const cam = A.W.camX, b = A.W.boil, t = A.W.t, W = A.W.W;
       g.seed(b * 3 + 8, 8);
       for (const f of this.flocks) { const x = f.x - cam, fl = Math.sin(t * 13 + f.ph) * 5; g.line([[x - 7, f.y - fl], [x - 2, f.y], [x + 1, f.y + 0.5], [x + 7, f.y - fl * 0.8 - 1]], { w: 1.3, step: 99, dbl: false, wob: 0.4 }); }
+      const night = (A.W.nf || 0) > 0.45;
       for (const o of this.sky) {
+        if (o.k === 'staff') {
+          // five ruled lines following the phrase, with a brace at the start and a double bar at the end
+          if (o.x - cam < -60 || o.pts[0][0] - cam > W + 60) continue;
+          g.seed(b * 2 + o.id * 7, o.id); const P = o.pts.map(p => [p[0] - cam, p[1]]), n = P.length, st = { w: 0.75, a: night ? 0.34 : 0.24, c: night ? '#dfe4ff' : C.inkSoft, dbl: false, taper: false, step: 99, wob: 0.5 };
+          for (let l = -2; l <= 2; l++) g.line(P.map(p => [p[0], p[1] + l * 7.5]), st);
+          g.line([[P[0][0], P[0][1] - 15], [P[0][0], P[0][1] + 15]], { ...st, w: 1.2 }); g.curl(P[0][0] + 13, P[0][1] + 3, 9, 1, { ...st, w: 1.3, turns: 1.3, a0: Math.PI / 2 });
+          g.line([[P[n - 1][0] - 4, P[n - 1][1] - 15], [P[n - 1][0] - 4, P[n - 1][1] + 15]], st); g.line([[P[n - 1][0], P[n - 1][1] - 15], [P[n - 1][0], P[n - 1][1] + 15]], { ...st, w: 2 });
+          continue;
+        }
         const x = o.x - cam; if (x < -200 || x > W + 220) continue;
         g.seed(b * 29 + o.id * 7, o.id);
         if (o.k === 'note') A.drawNote(g, x, o.y + Math.sin(t * 3 + o.ph) * 4, 1, o.col, o.v, true, Math.sin(t * 2 + o.ph) * 0.12);

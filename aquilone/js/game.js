@@ -8,12 +8,16 @@
   let S = 1, offY = 0, paper = null, paperPat = null, frame = null, edges = null, last = 0, shake = 0, quality = 1, slowAcc = 0, slowN = 0;
 
   const G = A.G = {
-    state: 'title', notes: 0, dist: 0, bows: 4, time: 0, diff: 0, chain: 0, lastNote: -9, best: 0, bestKm: 0, card: null, overT: 0, paused: false, zi: 0, stT: 0,
+    state: 'title', phr: { id: -1, got: 0 }, notes: 0, dist: 0, bows: 4, time: 0, diff: 0, chain: 0, lastNote: -9, best: 0, bestKm: 0, card: null, overT: 0, paused: false, zi: 0, stT: 0,
     sfx(n, v, r) { A.audio.sfx(n, v, r); },
     onNote(o) {
-      this.chain = (this.time - this.lastNote < 1.25) ? this.chain + 1 : 0; this.lastNote = this.time; this.notes++;
-      A.audio.chime(this.chain % 10, o.low ? 0.13 : 0.1); A.actors.bloom(o.x, o.y, o.col, false);
-      if (this.chain > 0 && this.chain % 8 === 7) { this.notes += 3; A.actors.say(o.x, o.y - 30, A.rng(this.notes)() < 0.5 ? 'Bravo !' : 'Bellissimo !', { size: 30, col: C.red }); }
+      this.notes++;
+      // every note sounds its own pitch, so a string gathered in order plays its little tune
+      A.audio.note(o.zk || 'c', o.deg || 0, o.low ? 1.15 : 1); A.actors.bloom(o.x, o.y, o.col, false);
+      if (o.pid === undefined) return;
+      if (this.phr.id !== o.pid) this.phr = { id: o.pid, got: 0 };
+      // the whole phrase, not one note missed: a flourish and a bonus
+      if (++this.phr.got === o.pn) { this.notes += 3; A.audio.flourish(o.zk); A.actors.bloom(o.x, o.y, o.col, true); A.actors.say(o.x, o.y - 34, ['Bravo !', 'Bellissimo !', 'Quelle mélodie !', 'Encore !'][o.pid % 4], { size: 30, col: C.red }); }
     },
     lose(x, y) {
       this.bows--; A.P.inv = 2; shake = 0.35;
@@ -33,10 +37,10 @@
       const k = o.k;
       if (k === 'geese') { this.sfx('honk', 0.7); A.actors.scatter(o.x, y, '#bbbbbb', 8, 'feather'); A.actors.say(o.x, y - 60, 'Coin coin !', { size: 28 }); }
       else if (k === 'cat') { this.sfx('meow', 0.7); A.actors.say(o.x, y - 50, 'Miaou !', { size: 28 }); }
-      else if (k === 'crate') { this.sfx('crash', 0.7); A.actors.scatter(o.x, y, '#e88a2a', 9); A.actors.say(o.x, y - 60, 'Oh là là !', { size: 28 }); }
-      else if (k === 'castle') { this.sfx('crash', 0.5); A.actors.scatter(o.x, y, C.sand, 12); A.actors.say(o.x, y - 60, 'Mamma mia !', { size: 28 }); }
-      else if (k === 'sheep') { this.sfx('crash', 0.6); A.actors.scatter(o.x, y, C.cream, 8); A.actors.say(o.x, y - 60, 'Bêêê !', { size: 28 }); }
-      else { this.sfx('crash', 0.6); A.actors.say(o.x, y - 50, k === 'crab' ? 'Aïe !' : 'Oups !', { size: 28 }); }
+      else if (k === 'crate') { this.sfx('crate', 0.75); A.actors.scatter(o.x, y, '#e88a2a', 9); A.actors.say(o.x, y - 60, 'Oh là là !', { size: 28 }); }
+      else if (k === 'castle') { this.sfx('sand', 0.8); A.actors.scatter(o.x, y, C.sand, 12); A.actors.say(o.x, y - 60, 'Mamma mia !', { size: 28 }); }
+      else if (k === 'sheep') { this.sfx('baa', 0.75); A.actors.scatter(o.x, y, C.cream, 8); A.actors.say(o.x, y - 60, 'Bêêê !', { size: 28 }); }
+      else { this.sfx(k === 'crab' ? 'crab' : k === 'ball' ? 'boing' : 'crash', 0.75); A.actors.say(o.x, y - 50, k === 'crab' ? 'Aïe !' : k === 'ball' ? 'Boing !' : 'Oups !', { size: 28 }); }
       this.lose(A.W.camX + A.P.kite.x, A.P.kite.y);
     },
     onCleared(o) { if (A.P.y < A.ground(A.P.x) - 6 || !A.P.on) A.actors.say(o.x, A.ground(o.x) - 110, A.rng(o.id)() < 0.5 ? 'Hop là !' : 'Et voilà !', { size: 22, vx: -10 }); },
@@ -316,3 +320,5 @@
   }
   boot();
 })();
+// (debug) ?synthtest plays each kite voice once and reports whether the audio graph built without error
+if (new URLSearchParams(location.search).has('synthtest')) setTimeout(() => { try { window.A.audio.start(); for (const z of ['c', 't', 'j', 'r', 'f']) { for (const d of [-7, 0, 4, 9]) window.A.audio.note(z, d, 1); window.A.audio.flourish(z); } console.log('synthtest ok ctx=' + window.A.audio.ctx.state + ' plucks=' + window.A.audio.plucks.size); } catch (e) { console.log('synthtest FAIL ' + e.message); } }, 600);

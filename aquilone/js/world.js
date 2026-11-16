@@ -131,7 +131,7 @@
       const W = this.W, nf = A.nightAt(this.camX + W * 0.5), z = A.zone(this.camX + W * 0.5);
       this.fwT -= dt;
       if (nf > 0.85 && z.f > 0.6 && this.fwT <= 0) {
-        this.fwT = 0.5 + Math.random() * 1.7;
+        this.fwT = 2.8 + Math.random() * 5.5;
         this.rockets.push({ x: W * (0.12 + Math.random() * 0.8), y: HORIZON + 30, vy: -330 - Math.random() * 120, ty: 80 + Math.random() * 170, col: ['#ffd27a', '#ff8a6a', '#8fe0d0', '#f3a0d0', '#ffffff', '#b6c8ff'][(Math.random() * 6) | 0], wob: Math.random() * 9 });
       }
       for (const k of this.rockets) {
@@ -140,7 +140,8 @@
           k.dead = true; const n = 22 + ((Math.random() * 14) | 0), ring = Math.random() < 0.35;
           for (let i = 0; i < n; i++) { const a = i / n * TAU + Math.random() * 0.2, sp = ring ? 150 : 50 + Math.random() * 150; this.sparks.push({ x: k.x, y: k.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 1.1 + Math.random() * 0.7, col: k.col }); }
           this.sparks.push({ x: k.x, y: k.y, vx: 0, vy: 0, life: 0, max: 0.35, col: k.col, flash: true });
-          if (A.G && A.G.state !== 'title') A.G.sfx('firework', 0.22, 0.9 + Math.random() * 0.25);
+          // they are a long way off across the water: the boom arrives late, and soft
+          if (A.G && A.G.state !== 'title') { const rate = 0.82 + Math.random() * 0.2; setTimeout(() => A.G.sfx('firework', 0.13, rate), 500 + Math.random() * 500); }
         }
       }
       this.rockets = this.rockets.filter(k => !k.dead);
@@ -425,6 +426,12 @@
           this.glow(c, fx, fy, fr * 2.6, n * 0.5 * k * fk); this.glow(c, fx, fy, fr * 0.8, n * 0.85 * k);
         }
         if (d.liveLights) for (const q of d.liveLights(sx, it.sy, sc, t, it)) { this.glow(c, q[0], q[1], q[2] * 2.4, n * 0.5 * k); this.glow(c, q[0], q[1], q[2] * 0.8, n * 0.9 * k); }
+      }
+      // fireflies low over the sand and the grass
+      for (let i = 0; i < 16; i++) {
+        const x = ((A.hash(i * 5 + 71) * (W + 200) - cam * 0.9 + Math.sin(t * 0.5 + i * 2) * 40) % (W + 200) + (W + 200)) % (W + 200) - 100, y = 610 + A.hash(i * 5 + 72) * 70 + Math.sin(t * 0.8 + i * 1.3) * 12;
+        const n = A.nightAt(cam + x), pulse = Math.max(0, Math.sin(t * (1.2 + A.hash(i) * 1.4) + i * 3)); if (n < 0.3 || pulse < 0.05) continue;
+        this.glow(c, x, y, 9, n * pulse * 0.7); this.glow(c, x, y, 2.4, n * pulse);
       }
       // a lantern on every boat
       for (const s of this.sea) { const x = s.lx - cam * s.par, y = HORIZON + 14 + s.d * 76, sc = 0.3 + s.d * 0.55, n = A.nightAt(cam + x); if (n > 0.1) { this.glow(c, x, y - 34 * sc, 22 * sc, n * 0.7); this.glow(c, x, y - 34 * sc, 6 * sc, n); c.globalAlpha = n * 0.35; c.fillStyle = '#ffd98a'; c.fillRect(x - 2 * sc, y + 4, 4 * sc, 14 * sc); } }

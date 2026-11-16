@@ -29,7 +29,7 @@
       this.kite = { x: 520, y: 260, vx: 0, vy: 0, ang: 0, gone: false };
       this.tail = []; for (let i = 0; i < 10; i++) this.tail.push({ x: 520 - i * 12, y: 300, px: 520 - i * 12, py: 300 });
       this.scarf = []; for (let i = 0; i < 6; i++) this.scarf.push({ x: 300 - i * 8, y: 480, px: 300 - i * 8, py: 480 });
-      this.hand = [330, 470]; this.dust = 0; this.ear = 0;
+      this.hand = [330, 470]; this.dust = 0; this.ear = 0; this.trail = [];
     },
     hop() {
       if (!this.on) return false;
@@ -69,6 +69,8 @@
         k.vx += ((tx - k.x) * 46 - k.vx * 9.5) * dt; k.vy += ((ty - k.y) * 46 - k.vy * 9.5) * dt;
       } else { k.vx += (90 - k.vx) * dt; k.vy += (-210 - k.vy) * dt * 1.5; }
       k.x += k.vx * dt; k.y += k.vy * dt;
+      // remember where the kite has been, in world terms, so it can leave a stroke of paint on the sky
+      this.trail.push([this.x - this.sx + k.x, k.y, t]); while (this.trail.length && t - this.trail[0][2] > 1.7) this.trail.shift();
       const wantAng = (k.gone ? Math.sin(t * 5) * 0.6 : A.clamp((k.x - hx) / STRING, -1, 1) * 0.5 + k.vx * 0.0011 + Math.sin(t * 3.1) * 0.05);
       k.ang += (wantAng - k.ang) * Math.min(1, dt * 8);
       // tail and scarf: verlet ribbons in the apparent wind
@@ -243,6 +245,18 @@
     drawKite(g, G) {
       const c = g.c, b = A.W.boil, k = this.kite, t = A.W.t;
       g.seed(b * 67 + 21, 21);
+      // the kite drags a loaded brush across the sky: a tapering stroke in the colour of the hour, drying as it goes
+      const tr = this.trail, cam = A.W.camX;
+      if (tr.length > 3 && !k.gone) {
+        const zi = A.zone(this.x).i, col = [C.cerulean, C.rose, C.absinthe, C.ochre, '#dfe4ff'][zi], n = tr.length;
+        c.fillStyle = col;
+        for (let i = 1; i < n; i++) {
+          const p0 = tr[i - 1], p1 = tr[i], u0 = 1 - (t - p0[2]) / 1.7, u1 = 1 - (t - p1[2]) / 1.7; let dx = p1[0] - p0[0], dy = p1[1] - p0[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+          const w0 = 1 + 11 * u0 * u0, w1 = 1 + 11 * u1 * u1, x0 = p0[0] - cam, x1 = p1[0] - cam;
+          c.globalAlpha = 0.46 * u1 * u1; c.beginPath(); c.moveTo(x0 - dy * w0, p0[1] + dx * w0); c.lineTo(x1 - dy * w1, p1[1] + dx * w1); c.lineTo(x1 + dy * w1, p1[1] - dx * w1); c.lineTo(x0 + dy * w0, p0[1] - dx * w0); c.closePath(); c.fill();
+        }
+        c.globalAlpha = 1;
+      }
       // string with a little slack
       if (!k.gone) {
         const hx = this.hand[0], hy = this.hand[1], d = Math.hypot(k.x - hx, k.y - hy), sag = Math.max(8, (STRING - d) * 0.22);
