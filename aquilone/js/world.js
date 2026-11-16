@@ -225,15 +225,16 @@
       const halo = c.createRadialGradient(x, y, R * 0.6, x, y, R * 4.4); halo.addColorStop(0, A.rgba(col, 0.44)); halo.addColorStop(1, A.rgba(col, 0));
       c.fillStyle = halo; c.fillRect(x - R * 4.5, y - R * 4.5, R * 9, R * 9); c.globalAlpha = 1;
       g.al = al; g.seed(this.boil * 31 + 3, 77);
-      g.paintEll(x, y, R, R, col, { a: 0.8 }); g.ell(x, y, R, R, { w: 1.6 });
+      // the disc: a wet wash with a paler heart and pigment pooled toward the rim, loosely ringed in ink
+      g.paintEll(x, y, R, R, col, { a: 0.82 });
+      g.washEll(x - R * 0.2, y - R * 0.22, R * 0.6, R * 0.56, '#fff2c4', { a: 0.45, edge: false, mottle: false, spread: 2 });
+      g.wash(A.arcPts(x, y, R * 0.96, R * 0.96, 0.2, Math.PI * 0.95, 9).concat(A.arcPts(x, y - R * 0.16, R * 0.9, R * 0.86, Math.PI * 0.95, 0.2, 9)), A.mix(col, C.red, 0.5), { a: 0.3, step: 99, edge: false, mottle: false });
+      g.ell(x, y, R, R, { w: 1.5, a: 0.8 });
+      // rays: long and short brush flicks, slowly wheeling
       for (let i = 0; i < 16; i++) {
-        const a = i / 16 * TAU + t * 0.12, l = i % 2 ? 14 : 24, r0 = R + 7, wv = Math.sin(t * 2 + i) * 2;
-        g.line([[x + Math.cos(a) * r0, y + Math.sin(a) * r0], [x + Math.cos(a + 0.06) * (r0 + l * 0.5) + wv * Math.sin(a), y + Math.sin(a + 0.06) * (r0 + l * 0.5) - wv * Math.cos(a)], [x + Math.cos(a) * (r0 + l), y + Math.sin(a) * (r0 + l)]], { w: 1.2, c: i % 2 ? C.ink : C.brick, step: 99, a: 0.8 });
+        const a = i / 16 * TAU + t * 0.12, l = i % 2 ? 13 : 26, r0 = R + 7, wv = Math.sin(t * 2 + i) * 2;
+        g.line([[x + Math.cos(a) * r0, y + Math.sin(a) * r0], [x + Math.cos(a + 0.06) * (r0 + l * 0.5) + wv * Math.sin(a), y + Math.sin(a + 0.06) * (r0 + l * 0.5) - wv * Math.cos(a)], [x + Math.cos(a) * (r0 + l), y + Math.sin(a) * (r0 + l)]], { w: i % 2 ? 1.3 : 1.9, c: i % 2 ? C.ink : C.brick, step: 99, a: i % 2 ? 0.6 : 0.8 });
       }
-      // a drowsy, kindly face
-      const blink = (t % 5) > 4.8;
-      for (const k of [-1, 1]) { if (blink) g.seg(x + k * 11 - 4, y - 5, x + k * 11 + 4, y - 5, { w: 1.2, over: 0 }); else g.arc(x + k * 11, y - 4, 4.5, 3.5, Math.PI, TAU, { w: 1.3 }); g.washEll(x + k * 15, y + 6, 5, 3.5, C.red, { a: 0.3, edge: false, mottle: false }); }
-      g.arc(x, y + 5, 10, 7, 0.2, Math.PI - 0.2, { w: 1.4 }); g.line([[x - 1, y - 2], [x + 2.5, y + 3], [x - 1, y + 4]], { w: 1, dbl: false, wob: 0.4 });
       g.al = 1;
     },
 
