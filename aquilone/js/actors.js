@@ -17,11 +17,14 @@
       if (!this.npcs) return;
       const x = it.lx + gap * 0.5 + 20, add = o => { this.npcs.push({ id: ++this.id, ph: r() * 9, x, ...o }); this.lastNpc = x + (o.wide || 0); };
       if (it.name === 'cafe' && r.chance(0.7)) { add({ k: 'band', x: x + 20 }); return; }
+      if (it.name === 'bandstand') { add({ k: 'band', x: it.lx - 10 }); return; }
       if (x - (this.lastNpc ?? -1e9) < 170 || !r.chance(zk === 'c' ? 0.2 : 0.46)) return;
       // who might be out on the road in each tableau: [kind, weight]
       const tab = { c: [['haycart', 2.2], ['painter', 1.3], ['gent', 1.6], ['couple', 0.9], ['hoop', 0.7]],
         t: [['walker', 2.4], ['gent', 3], ['couple', 3], ['mime', 1], ['painter', 0.8], ['pram', 1.3], ['hoop', 1.1], ['balloons', 1], ['penny', 0.9], ['pigeons', 1.4], ['coupe', 1.5]],
-        r: [['walker', 2.6], ['gent', 2.6], ['couple', 3], ['mime', 0.5], ['painter', 1.1], ['pram', 1.1], ['hoop', 1], ['balloons', 1.1], ['penny', 0.8], ['coupe', 1.2]] }[zk];
+        j: [['walker', 2.6], ['gent', 2.4], ['couple', 3], ['mime', 0.7], ['painter', 1.3], ['pram', 2.2], ['hoop', 2], ['balloons', 1.6], ['penny', 0.6], ['pigeons', 1.4]],
+        r: [['walker', 2.6], ['gent', 2.6], ['couple', 3], ['mime', 0.5], ['painter', 1.1], ['pram', 1.1], ['hoop', 1], ['balloons', 1.1], ['penny', 0.8], ['coupe', 1.2]],
+        f: [['walker', 2], ['gent', 2.6], ['couple', 3.4], ['mime', 0.8], ['balloons', 1.6], ['hoop', 1], ['coupe', 0.8], ['pram', 0.6]] }[zk];
       let tot = 0; for (const e of tab) tot += e[1];
       let pick = r() * tot, k = tab[0][0]; for (const e of tab) { pick -= e[1]; if (pick <= 0) { k = e[0]; break; } }
       const dress = () => r.pick([C.rose, C.lavender, C.sage, C.ochre, C.sky, C.pink, C.teal, C.mauve]), suit = () => r.pick([C.prussian, C.umber, C.slate, C.pine, '#6e2f2a', C.inkSoft]);
@@ -56,14 +59,14 @@
       while (this.nextHaz < edge) {
         const x = this.nextHaz, z = A.zone(x);
         if (r.chance(0.5)) this.sky.push({ k: 'storm', x: x + 60, y: r.range(110, 330), id: ++this.id, vx: -r.range(10, 30), ph: r() * 9, r: 44 });
-        else { const y = r.range(120, 380), gull = z.r > 0.5; this.sky.push({ k: 'bird', gull, x: x + 60, y, y0: y, id: ++this.id, vx: -r.range(110, 190) - diff * 60, ph: r() * 9, r: 20, cawed: false }); }
+        else { const y = r.range(120, 380), gull = z.sea > 0.5; this.sky.push({ k: 'bird', gull, x: x + 60, y, y0: y, id: ++this.id, vx: -r.range(110, 190) - diff * 60, ph: r() * 9, r: 20, cawed: false }); }
         this.nextHaz += r.range(760, 1450) * (1.2 - diff * 0.55);
       }
       // things in the road
       while (this.nextOb < edge) {
-        const x = this.nextOb, z = A.zone(x), zk = z.c > 0.5 ? 'c' : z.t > 0.5 ? 't' : z.r > 0.5 ? 'r' : null;
+        const x = this.nextOb, z = A.zone(x), zk = ['c', 't', 'j', 'r', 'f'].find(q => z[q] > 0.5);
         if (zk) {
-          const k = r.pick({ c: ['geese', 'geese', 'sheep'], t: ['cat', 'crate', 'crate'], r: ['crab', 'castle', 'ball'] }[zk]);
+          const k = r.pick({ c: ['geese', 'geese', 'sheep'], t: ['cat', 'crate', 'crate'], j: ['ball', 'cat', 'geese'], r: ['crab', 'castle', 'ball'], f: ['crate', 'ball', 'crab'] }[zk]);
           const o = { k, x: x + 80, id: ++this.id, ph: r() * 9, hit: false, n: k === 'geese' ? r.int(1, 3) : 1, vx: k === 'geese' ? -22 : k === 'ball' ? -70 : 0 };
           o.hw = { geese: 12 + o.n * 9, sheep: 26, cat: 20, crate: 22, crab: 18, castle: 24, ball: 15 }[k]; o.h = { geese: 34, sheep: 38, cat: 20, crate: 34, crab: 16, castle: 34, ball: 30 }[k];
           o.hw *= OS; o.h *= OS;
@@ -169,7 +172,7 @@
         } else if (p.k === 'drop') {
           g.seg(x, y, x - 2, y + 7, { w: 1.2, c: C.cerulean, a: 1 - u, dbl: false, over: 0 });
         } else if (p.k === 'text') {
-          g.text(p.text, x, y, { size: p.size * (0.8 + 0.2 * A.smooth(u * 5)), font: p.font || A.FONT.script, a: Math.min(1, (1 - u) * 2.5), c: p.col });
+          g.text(p.text, x, y, { size: p.size * (0.8 + 0.2 * A.smooth(u * 5)), font: p.font || A.FONT.script, a: Math.min(1, (1 - u) * 2.5), c: (A.W.nf || 0) > 0.45 && p.col === C.ink ? '#fff0cc' : p.col });
         }
       }
     },
@@ -189,18 +192,22 @@
     },
     drawRoad(g) {
       const cam = A.W.camX, b = A.W.boil, t = A.W.t, W = A.W.W;
+      g.taper = false;      // passers-by are small: plain strokes read the same and cost less
       for (const n of this.npcs) {
         const x = n.x - cam; if (x < -380 || x > W + 380) continue;
         const y = A.ground(n.x) - 15, c = g.c; g.seed(b * 23 + n.id * 5, n.id);
         // figures are drawn facing right at the origin; those heading left are mirrored
+        c.fillStyle = 'rgba(96,84,134,0.17)'; c.beginPath(); c.ellipse(x + (/coupe|haycart/.test(n.k) ? 30 * (n.dir < 0 ? -1 : 1) : 0), y + 3, { coupe: 150, haycart: 130, band: 90, couple: 34, pram: 44, painter: 44 }[n.k] || 24, 5.5, 0, 0, TAU); c.fill();
         c.save(); c.translate(x, y); c.scale(NS * (n.dir < 0 ? -1 : 1), NS);
         (NPC[n.k] || NPC.walker)(g, n, t + n.ph, Math.abs(n.x - A.P.x) < 190);
         c.restore();
       }
+      g.taper = true;
       for (const o of this.road) {
         const x = o.x - cam; if (x < -140 || x > W + 140) continue;
         let y = A.ground(o.x); g.seed(b * 19 + o.id * 3, o.id);
         const c = g.c; c.save();
+        if (!o.hit) { c.fillStyle = 'rgba(96,84,134,0.2)'; c.beginPath(); c.ellipse(x, y + 2, o.hw + 6, 5, 0, 0, TAU); c.fill(); }
         if (o.hit) { c.translate(x + o.fly * 160, y - Math.sin(Math.min(1, o.fly * 1.2) * Math.PI) * 70); c.rotate(o.fly * 5); c.globalAlpha = Math.max(0, 1 - o.fly * 0.7); } else c.translate(x, y);
         c.scale(OS, OS); A.drawObstacle(g, o, t + o.ph);
         c.restore(); c.globalAlpha = 1;
@@ -211,26 +218,31 @@
   // ───── drawings ─────
   A.drawNote = (g, x, y, s, col, v, halo, rot = 0) => {
     const c = g.c; c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s);
-    if (halo) g.wash(g.scallop(0, 0, 17, 16, 8, { depth: 0.16 }), col, { a: 0.55, step: 99, spread: 1.6, edge: true });
-    const head = (hx, hy) => { c.save(); c.translate(hx, hy); c.rotate(-0.4); g.wash(A.arcPts(0, 0, 6.2, 4.4, 0, TAU, 8), C.ink, { a: 0.92, spread: 0.3, step: 99, mottle: false, ox: 0, oy: 0 }); c.restore(); };
-    if (v === 1) { head(-7, 9); head(7, 6); g.seg(-1.6, 8, -1.6, -11, { w: 1.5, over: 0 }); g.seg(12.4, 5, 12.4, -14, { w: 1.5, over: 0 }); g.line([[-1.6, -11], [12.4, -14]], { w: 3.4, dbl: false, wob: 0.3 }); }
+    // after dark the notes are written in pale ink on a brighter bloom, like little lanterns
+    const night = halo && (A.W.nf || 0) > 0.45, ink = night ? '#fff6dc' : C.ink, keep = g.inkCol;
+    if (halo) g.wash(g.scallop(0, 0, 17, 16, 8, { depth: 0.16 }), col, { a: night ? 0.8 : 0.55, step: 99, spread: 1.6, edge: true });
+    g.inkCol = ink;
+    const head = (hx, hy) => { c.save(); c.translate(hx, hy); c.rotate(-0.4); g.wash(A.arcPts(0, 0, 6.2, 4.4, 0, TAU, 8), ink, { a: 0.92, spread: 0.3, step: 99, mottle: false, ox: 0, oy: 0 }); c.restore(); };
+    if (v === 1) { head(-7, 9); head(7, 6); g.seg(-1.6, 8, -1.6, -11, { w: 1.5, over: 0 }); g.seg(12.4, 5, 12.4, -14, { w: 1.5, over: 0 }); g.line([[-1.6, -11], [12.4, -14]], { w: 3.4, dbl: false, wob: 0.3, taper: false }); }
     else { head(-2, 9); g.seg(3.4, 8, 3.4, -13, { w: 1.5, over: 0 }); if (v === 0) g.line(A.quadPts([3.4, -13], [12, -9], [10, 0], 5), { w: 2, wob: 0.3 }); }
-    c.restore();
+    g.inkCol = keep; c.restore();
   };
+  // A squall: a heavy-bellied cloud trailing a veil of rain, with the odd flicker of lightning.
   A.drawStorm = (g, x, y, t) => {
-    const c = g.c, bob = Math.sin(t * 1.4) * 3; c.save(); c.translate(x, y + bob);
-    const flash = (t % 3.1) < 0.16;
-    // rain
-    for (let i = 0; i < 9; i++) { const rx = -44 + i * 11, f = ((t * 1.6 + i * 0.37) % 1), ry = 24 + f * 46; g.seg(rx - f * 8, ry, rx - f * 8 - 2.5, ry + 9, { w: 1.2, c: C.cerulean, a: (1 - f) * 0.9, dbl: false, over: 0 }); }
-    if (flash || (t % 3.1) < 0.3) { const z = [[6, 22], [-4, 44], [5, 44], [-6, 70]]; g.line(z, { w: 3, c: C.ochre, step: 99, dbl: false, wob: 0.4 }); g.line(z, { w: 1, step: 99, wob: 0.4 }); }
-    const pts = g.scallop(0, 0, 54, 26, 9, { depth: 0.3 });
-    g.paint(pts, flash ? C.straw : '#7f7a9c', { a: 0.82, step: 99, spread: 2 });
-    g.wash(A.arcPts(4, 9, 42, 14, 0, TAU, 10), C.prussian, { a: 0.3, step: 99, edge: false });
-    g.line(pts, { closed: true, w: 1.9, step: 99, wob: 1.3 });
-    // a thoroughly cross little face
-    g.seg(-20, -9, -8, -4, { w: 2, over: 0 }); g.seg(20, -9, 8, -4, { w: 2, over: 0 });
-    g.dot(-13, 1, 2.2); g.dot(13, 1, 2.2); g.arc(0, 15, 9, 6, Math.PI * 1.15, Math.PI * 1.85, { w: 1.7 });
-    g.washEll(-22, 8, 5, 3, C.red, { a: 0.3, edge: false, mottle: false }); g.washEll(22, 8, 5, 3, C.red, { a: 0.3, edge: false, mottle: false });
+    const c = g.c, bob = Math.sin(t * 1.4) * 3, cyc = t % 3.1, flash = cyc < 0.16; c.save(); c.translate(x, y + bob);
+    // the rain veil, then individual streaks
+    g.wash([[-44, 16], [46, 16], [22, 84], [-62, 84]], C.slate, { a: 0.22, spread: 3, edge: false, mottle: false, step: 99 });
+    for (let i = 0; i < 12; i++) { const rx = -46 + i * 8.4, f = ((t * 1.7 + i * 0.37) % 1), ry = 20 + f * 56; g.seg(rx - f * 12, ry, rx - f * 12 - 4, ry + 13, { w: 1.2, c: i % 3 ? C.cerulean : C.prussian, a: (1 - f) * 0.85, dbl: false, over: 0, taper: false }); }
+    if (cyc < 0.3) { const z = [[8, 20], [-5, 44], [6, 45], [-8, 76]]; g.line(z, { w: 3.4, c: flash ? '#fff3b0' : C.ochre, step: 99, dbl: false, wob: 0.4, taper: false }); g.line(z, { w: 1, step: 99, wob: 0.4, taper: false }); }
+    // towering crown behind, dark mass in front, darker still along the belly
+    const crown = g.scallop(-12, -20, 34, 22, 7, { depth: 0.32 }), body = g.scallop(0, 0, 58, 24, 10, { depth: 0.3 });
+    g.wash(crown, flash ? C.straw : '#a9a6c4', { under: true, a: 0.8, step: 99, spread: 2 }); g.line(crown, { closed: true, w: 1.3, step: 99, wob: 1.2, a: 0.7 });
+    g.wash(body, flash ? '#d9d2b0' : '#77749a', { under: true, a: 0.88, step: 99, spread: 2 });
+    g.wash(A.arcPts(2, 10, 50, 13, 0, TAU, 12), C.prussian, { a: 0.42, step: 99, edge: false, mottle: false });
+    g.wash(A.arcPts(-14, -10, 26, 9, 0, TAU, 10), '#ffffff', { a: 0.22, step: 99, edge: false, mottle: false });
+    g.line(body, { closed: true, w: 2, step: 99, wob: 1.3 });
+    // the churn inside it
+    g.curl(-22, 2, 9, 1, { w: 1.2, a: 0.6, turns: 1.2, dbl: false }); g.curl(16, -2, 11, -1, { w: 1.2, a: 0.6, turns: 1.3, dbl: false }); g.arc(34, 8, 12, 7, Math.PI * 1.1, Math.PI * 1.9, { w: 1, a: 0.5, dbl: false });
     c.restore();
   };
   A.drawBird = (g, x, y, t, gull) => {

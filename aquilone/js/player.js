@@ -22,6 +22,7 @@
   };
 
   const P = A.P = {
+    who: 'f',
     reset(x) {
       this.x = x; this.y = A.ground(x); this.vy = 0; this.on = true; this.tilt = 0; this.speed = 300; this.crank = 0; this.wheel = 0;
       this.wob = 0; this.squash = 0; this.inv = 0; this.sx = 0;
@@ -94,21 +95,31 @@
       const c = g.c, b = A.W.boil, t = A.W.t;
       if (this.inv > 0 && Math.floor(t * 14) % 2 === 0 && !this.kite.gone) c.globalAlpha = 0.45;
       const wobA = this.wob > 0 ? Math.sin(this.wob * 26) * 0.12 * this.wob : 0;
+      const gy = A.ground(this.x), air = Math.max(0, gy - this.y), shk = 1 / (1 + air / 90);
+      c.fillStyle = `rgba(96,84,134,${0.22 * shk})`; c.beginPath(); c.ellipse(this.sx + 2, gy + 3, 58 * RS * (0.6 + 0.4 * shk), 6.5 * shk, Math.atan(A.slope(this.x)), 0, TAU); c.fill();
       c.save(); c.translate(this.sx, this.y); c.rotate(this.tilt + wobA); c.scale(RS * (1 - this.squash * 0.5), RS * (1 + this.squash));
       g.seed(b * 61 + 11, 11);
       const R = [-33, -23], F = [35, -23], BB = [-3, -22], S = [-15, -58], HT = [25, -64], GR = [17, -77], WR = 23;
       const th = this.crank, ped = a => [BB[0] + Math.cos(a) * 10, BB[1] + Math.sin(a) * 10];
       const hip = [-14, -66], sh = [3, -100], hd = [9, -113];
+      // two riders share the bicycle: mademoiselle in her skirt and boater, monsieur in tweeds and a flat cap
+      const man = this.who === 'm', TWEED = '#a48c58', BREECH = '#7f6c4c', hairC = man ? C.umber : C.brick;
       const leg = (a, far) => {
         const p = ped(a), kn = ik(hip, p, 25, 26, -1);
         // stockinged calf with jaunty stripes
         const an = [p[0] + 0.5, p[1] - 5], dxl = an[0] - kn[0], dyl = an[1] - kn[1], dl = Math.hypot(dxl, dyl) || 1, nx = -dyl / dl, ny = dxl / dl;
         g.limb([kn, [(kn[0] + an[0]) / 2 + nx * 1.4, (kn[1] + an[1]) / 2 + ny * 1.4], an], [3.5, 3.5, 2.3], far ? '#d9c9a8' : '#ffffff', { a: far ? 0.9 : 0.15 });
-        for (let i = 1; i <= 3; i++) { const u = i / 4.2, sx = A.lerp(kn[0], an[0], u) + nx * 0.8, sy = A.lerp(kn[1], an[1], u) + ny * 0.8, hw = 3 - u; g.line([[sx - nx * hw, sy - ny * hw], [sx + nx * hw, sy + ny * hw]], { w: 1.7, c: C.red, dbl: false, wob: 0.2, a: far ? 0.45 : 0.9 }); }
+        for (let i = 1; i <= 3; i++) { const u = i / 4.2, sx = A.lerp(kn[0], an[0], u) + nx * 0.8, sy = A.lerp(kn[1], an[1], u) + ny * 0.8, hw = 3 - u; g.line([[sx - nx * hw, sy - ny * hw], [sx + nx * hw, sy + ny * hw]], { w: 1.7, c: man ? C.pine : C.red, dbl: false, wob: 0.2, a: far ? 0.45 : 0.9 }); }
         // buttoned boot and pedal
         const boot = [[p[0] - 4, p[1] - 6], [p[0] + 2.5, p[1] - 6], [p[0] + 9, p[1] - 0.5], [p[0] + 8.5, p[1] + 2], [p[0] - 4, p[1] + 2]];
         g.wash(boot, C.umber, { a: far ? 0.6 : 0.9, spread: 0.5, mottle: false }); g.line(boot, { closed: true, w: 1, step: 99, dbl: false });
         g.seg(p[0] - 5, p[1] + 3, p[0] + 7, p[1] + 3, { w: 1.6, over: 0 });
+        if (man) {      // knickerbockers, gathered into a cuff below the knee
+          const cuff = [A.lerp(kn[0], an[0], 0.2), A.lerp(kn[1], an[1], 0.2)];
+          g.limb([hip, [(hip[0] + kn[0]) / 2, (hip[1] + kn[1]) / 2 - 1.5], kn, cuff], [8, 8.4, 6.8, 4.6], far ? A.mix(BREECH, C.ink, 0.28) : BREECH, { a: 0.85, w: 1.3 });
+          g.line([[cuff[0] - nx * 4.8, cuff[1] - ny * 4.8], [cuff[0] + nx * 4.8, cuff[1] + ny * 4.8]], { w: 1.6, dbl: false, wob: 0.3 });
+          if (!far) g.line([[hip[0] + 5, hip[1] + 3], [(hip[0] + kn[0]) / 2 + 2, (hip[1] + kn[1]) / 2 + 3], [kn[0] - 3, kn[1] + 3]], { w: 0.7, a: 0.45, dbl: false });
+        }
         return [kn, an];
       };
       // far-side leg, then machine, then near leg
@@ -147,6 +158,7 @@
       // Skirt: the convex outline around waist, saddle, both knees and both upper calves. Because it is
       // built from the legs themselves it always encloses them, so the calves emerge from under the hem
       // wherever the pedals are.
+      if (!man) {
       const mid = (a, b2, u) => [A.lerp(a[0], b2[0], u), A.lerp(a[1], b2[1], u)], cN = mid(knN, anN, 0.36), cF = mid(knF, anF, 0.36);
       const sk = hull([[-21, -73], [-8, -77], [-26, -54], [knN[0] + 6, knN[1] - 5], [knF[0] + 6, knF[1] - 5], [knN[0] + 7, knN[1] + 3], [knF[0] + 7, knF[1] + 3],
         [cN[0] + 6, cN[1] + 3], [cN[0] - 5, cN[1] + 4], [cF[0] + 6, cF[1] + 3], [cF[0] - 5, cF[1] + 4]]);
@@ -155,31 +167,42 @@
       g.line([[-10, -72], [knN[0] - 1, knN[1] + 2], [cN[0], cN[1] + 1]], { w: 0.8, a: 0.5, dbl: false });
       g.line([[-15, -70], [knF[0] - 4, knF[1] + 3], [cF[0] - 2, cF[1] + 1]], { w: 0.7, a: 0.38, dbl: false });
       g.line([[-19, -68], [-22, -56]], { w: 0.7, a: 0.4, dbl: false });
+      } else {
+        const seat = [[-22, -72], [-8, -77], [-3, -68], [-6, -58], [-17, -56], [-25, -62]]; g.wash(seat, BREECH, { under: true, a: 0.85, spread: 0.8, step: 99, mottle: false }); g.line([seat[4], seat[5], seat[0]], { w: 1.3, step: 99, wob: 0.6 });
+      }
       // blouse
       const bl = [[-20, -72], [-8, -77], [9, -98], [0, -106], [-11, -99]];
-      g.paint(bl, C.cream, { a: 0.5, step: 99 }); g.line(bl, { closed: true, w: 1.4, step: 99, wob: 0.7 });
-      g.washRect(-19, -78, 12, 5, C.prussian, { a: 0.85, spread: 0.4, mottle: false });       // sash
-      for (let i = 0; i < 3; i++) g.dot(-3 + i * 3.6, -82 - i * 5.2, 0.85);                    // buttons
-      g.scribble(5, -95, 2.6, 3.6, 6, { w: 0.6, a: 0.55 });                                    // lace at the throat
-      g.line([[-14, -76], [-8, -90], [-9, -98]], { w: 0.6, a: 0.4, dbl: false });
+      g.paint(bl, man ? TWEED : C.cream, { a: man ? 0.8 : 0.5, step: 99 }); g.line(bl, { closed: true, w: 1.4, step: 99, wob: 0.7 });
+      if (man) {
+        // Norfolk jacket: belt, box pleat, lapel, and a collar and tie at the throat
+        g.line([[-20, -78], [-5, -84]], { w: 2.2, c: BREECH, dbl: false }); g.line([[-15, -74], [-6, -96]], { w: 0.7, a: 0.5, dbl: false });
+        g.line([[8, -98], [1, -92], [-2, -84]], { w: 0.9, dbl: false }); for (let i = 0; i < 2; i++) g.dot(-1 + i * 3, -80 - i * 5, 0.9);
+        const col = [[3, -103], [9, -100], [6, -95]]; g.wash(col, '#ffffff', { under: true, a: 1, spread: 0.2, mottle: false, edge: false }); g.line(col, { closed: true, w: 0.8, step: 99, dbl: false });
+        g.wash([[6, -99], [9, -97], [6, -91], [4, -94]], C.red, { a: 0.95, spread: 0.2, mottle: false, edge: false });
+      } else {
+        g.washRect(-19, -78, 12, 5, C.prussian, { a: 0.85, spread: 0.4, mottle: false });       // sash
+        for (let i = 0; i < 3; i++) g.dot(-3 + i * 3.6, -82 - i * 5.2, 0.85);                    // buttons
+        g.scribble(5, -95, 2.6, 3.6, 6, { w: 0.6, a: 0.55 });                                    // lace at the throat
+        g.line([[-14, -76], [-8, -90], [-9, -98]], { w: 0.6, a: 0.4, dbl: false });
+      }
       // kite arm raised toward the kite, near arm on the bar
       const k = this.kite, kl = [(k.x - this.sx) / RS, (k.y - this.y) / RS], kd = Math.hypot(kl[0] - sh[0], kl[1] - sh[1]) || 1;
       const hand = [sh[0] + (kl[0] - sh[0]) / kd * 24 - 4, sh[1] + (kl[1] - sh[1]) / kd * 24];
       const arm = (to, dir) => {
         const el = ik(sh, to, 14, 14, dir), fx = to[0] - el[0], fy = to[1] - el[1], fd = Math.hypot(fx, fy) || 1, cx = to[0] - fx / fd * 3, cy = to[1] - fy / fd * 3;
-        g.limb([sh, el, [cx, cy]], [5, 3.3, 2.2], C.cream, { a: 0.5 });
-        g.line([[cx + fy / fd * 2.6, cy - fx / fd * 2.6], [cx - fy / fd * 2.6, cy + fx / fd * 2.6]], { w: 1.8, c: C.prussian, dbl: false, wob: 0.2 });      // cuff
+        g.limb([sh, el, [cx, cy]], man ? [4.6, 3.8, 3] : [5, 3.3, 2.2], man ? TWEED : C.cream, { a: man ? 0.8 : 0.5 });
+        g.line([[cx + fy / fd * 2.6, cy - fx / fd * 2.6], [cx - fy / fd * 2.6, cy + fx / fd * 2.6]], { w: 1.8, c: man ? '#ffffff' : C.prussian, dbl: false, wob: 0.2 });      // cuff
         g.paintEll(to[0], to[1], 2.7, 2.7, C.skin, { a: 0.8, mottle: false }); g.ell(to[0], to[1], 2.7, 2.7, { w: 0.9, dbl: false });
       };
       arm(hand, 1);
       this.hand = this.toScreen(hand[0], hand[1]);
       arm(GR, -1);
-      g.paintEll(sh[0] - 1, sh[1] + 3, 6.5, 7, C.cream, { a: 0.5 }); g.ell(sh[0] - 1, sh[1] + 3, 6.5, 7, { w: 1.2 });
+      if (!man) { g.paintEll(sh[0] - 1, sh[1] + 3, 6.5, 7, C.cream, { a: 0.5 }); g.ell(sh[0] - 1, sh[1] + 3, 6.5, 7, { w: 1.2 }); }
       // head, hair, boater
       g.line([[3, -103], [6, -106]], { w: 3.4, c: C.skin, dbl: false });
-      g.paintEll(hd[0] - 6, hd[1] + 1, 7, 7.5, C.brick, { a: 0.85 }); g.ell(hd[0] - 6, hd[1] + 1, 7, 7.5, { w: 1.1 });
+      if (!man) { g.paintEll(hd[0] - 6, hd[1] + 1, 7, 7.5, C.brick, { a: 0.85 }); g.ell(hd[0] - 6, hd[1] + 1, 7, 7.5, { w: 1.1 }); }
       g.paintEll(hd[0], hd[1], 8, 8.6, C.skin, { a: 0.6 }); g.ell(hd[0], hd[1], 8, 8.6, { w: 1.3 });
-      g.wash(A.arcPts(hd[0] - 1, hd[1] - 3, 8.4, 7, Math.PI * 0.95, Math.PI * 1.9, 7), C.brick, { a: 0.85, spread: 0.5, step: 99, mottle: false });
+      g.wash(A.arcPts(hd[0] - 1, hd[1] - 3, 8.4, 7, Math.PI * (man ? 0.8 : 0.95), Math.PI * 1.9, 7), hairC, { a: 0.85, spread: 0.5, step: 99, mottle: false });
       // face: a bright eye that blinks, brow, nose, smile, rosy cheek
       const ex = hd[0] + 3.6, ey = hd[1] - 1.2;
       if ((t % 4.3) > 4.15) g.line([[ex - 2, ey], [ex + 2, ey + 0.3]], { w: 1.1, dbl: false, wob: 0.2 });
@@ -187,24 +210,33 @@
         g.paintEll(ex, ey, 2.1, 2.5, '#ffffff', { a: 1, mottle: false, edge: false, spread: 0.2 }); g.ell(ex, ey, 2.1, 2.5, { w: 0.8, dbl: false, wob: 0.25 }); g.dot(ex + 0.7, ey + 0.2, 1.25);
         g.line([[ex - 1.6, ey - 2.4], [ex + 1.2, ey - 3], [ex + 3, ey - 2.2]], { w: 0.8, dbl: false, wob: 0.2 });
       }
-      g.line([[ex - 2.4, ey - 4.8], [ex + 2.6, ey - 5.6]], { w: 1, dbl: false, wob: 0.3, c: C.brick });
+      g.line([[ex - 2.4, ey - 4.8], [ex + 2.6, ey - 5.6]], { w: man ? 1.4 : 1, dbl: false, wob: 0.3, c: hairC });
       g.line([[hd[0] + 7.6, hd[1] - 0.4], [hd[0] + 10, hd[1] + 2.2], [hd[0] + 7.6, hd[1] + 3]], { w: 1, dbl: false, wob: 0.3 });
-      g.arc(hd[0] + 4.6, hd[1] + 3.4, 3.2, 2.6, 0.15, 2.5, { w: 1.1 }); g.wash(A.arcPts(hd[0] + 5, hd[1] + 4.7, 1.8, 1.1, 0, TAU, 5), C.red, { a: 0.7, spread: 0.2, edge: false, mottle: false });
+      g.arc(hd[0] + 4.6, hd[1] + 3.4, 3.2, 2.6, 0.15, 2.5, { w: 1.1 }); if (!man) g.wash(A.arcPts(hd[0] + 5, hd[1] + 4.7, 1.8, 1.1, 0, TAU, 5), C.red, { a: 0.7, spread: 0.2, edge: false, mottle: false });
       g.washEll(hd[0] + 1.6, hd[1] + 2.6, 2.8, 2, C.red, { a: 0.4, edge: false, mottle: false, spread: 0.4 });
       g.arc(hd[0] - 3.4, hd[1] + 0.6, 1.6, 2.4, 1.3, 4.9, { w: 0.8, dbl: false });
+      if (man) {
+        // flat tweed cap with a short peak, and a sideburn
+        g.line([[hd[0] - 4, hd[1] - 1], [hd[0] - 3.4, hd[1] + 4]], { w: 2, c: hairC, dbl: false });
+        const cap = [[hd[0] - 10, hd[1] - 7], [hd[0] - 9, hd[1] - 14], [hd[0] - 1, hd[1] - 18], [hd[0] + 8, hd[1] - 15], [hd[0] + 10, hd[1] - 10]];
+        g.wash(cap, TWEED, { under: true, a: 0.85, spread: 0.5, step: 99, mottle: false }); g.line(cap, { closed: true, w: 1.3, step: 99, wob: 0.5 });
+        g.line([[hd[0] + 8, hd[1] - 10.5], [hd[0] + 17, hd[1] - 8]], { w: 2.6, wob: 0.4 }); g.dot(hd[0], hd[1] - 17.5, 1.1);
+        for (const q of [-4, 2]) g.line([[hd[0] + q, hd[1] - 16], [hd[0] + q + 1, hd[1] - 10]], { w: 0.5, a: 0.4, dbl: false });
+      } else {
       const hb = [[hd[0] - 9, hd[1] - 15], [hd[0] + 6, hd[1] - 17], [hd[0] + 7, hd[1] - 10], [hd[0] - 8, hd[1] - 8]];
       g.paint(hb, C.straw, { a: 0.85 }); g.poly(hb, { w: 1.2 });
       g.wash([[hd[0] - 8.5, hd[1] - 11.5], [hd[0] + 6.8, hd[1] - 13.5], [hd[0] + 7, hd[1] - 10], [hd[0] - 8, hd[1] - 8]], C.prussian, { a: 0.9, spread: 0.3, mottle: false });
       g.line([[hd[0] - 15, hd[1] - 6.5], [hd[0] + 14, hd[1] - 10.5]], { w: 2.4, wob: 0.4 });
       for (const q of [0, 1]) g.line(A.quadPts([hd[0] - 8, hd[1] - 10], [hd[0] - 17, hd[1] - 9 + q * 4 + Math.sin(t * 9 + q) * 2], [hd[0] - 25, hd[1] - 5 + q * 5 + Math.sin(t * 11 + q * 2) * 3], 5), { w: 2, c: C.prussian, dbl: false, wob: 0.3 });   // hat ribbons
+      }
       c.restore();
       // scarf: anchored at the neck, streaming behind
       const nk = this.toScreen(1, -103);
       this.ribbon(this.scarf, nk[0], nk[1], 11.5, 1 / 60, -360 - this.speed, 120, t, 90);
       const sp = this.scarf.map(n => [n.x, n.y]);
       const band = [...sp.map((p, i) => [p[0], p[1] - 4.2 + i * 0.4]), ...sp.slice().reverse().map((p, i) => [p[0], p[1] + 4.2 - (5 - i) * 0.4])];
-      g.wash(band, C.ochre, { a: 0.9, spread: 0.6, step: 99, mottle: false }); g.line(band, { closed: true, w: 1, step: 99, wob: 0.5, dbl: false });
-      for (let i = 1; i < 5; i += 2) g.wash([[sp[i][0], sp[i][1] - 3.8], [sp[i + 1][0], sp[i + 1][1] - 3.8], [sp[i + 1][0], sp[i + 1][1] + 3.8], [sp[i][0], sp[i][1] + 3.8]], C.red, { a: 0.85, spread: 0.3, step: 99, mottle: false, edge: false });
+      g.wash(band, man ? C.cream : C.ochre, { a: 0.9, spread: 0.6, step: 99, mottle: false }); g.line(band, { closed: true, w: 1, step: 99, wob: 0.5, dbl: false });
+      for (let i = 1; i < 5; i += 2) g.wash([[sp[i][0], sp[i][1] - 3.8], [sp[i + 1][0], sp[i + 1][1] - 3.8], [sp[i + 1][0], sp[i + 1][1] + 3.8], [sp[i][0], sp[i][1] + 3.8]], man ? C.cerulean : C.red, { a: 0.85, spread: 0.3, step: 99, mottle: false, edge: false });
       c.globalAlpha = 1;
     },
 

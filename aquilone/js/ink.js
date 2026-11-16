@@ -24,6 +24,9 @@
       this.lw = 1;         // line weight multiplier
       this.inkCol = C.ink;
       this.al = 1;         // global opacity multiplier (for fading whole drawings)
+      this.taper = true;   // pressure-sensitive pen strokes
+      this.glaze = false;  // sprites: add a cool shadow glaze toward the lower right of every wash
+      this.lights = null;  // sprites: collects [x, y, r] spots that glow at night
       this.mottle = null;  // optional CanvasPattern of pale blotches for pigment granulation
     }
     seed(jitter, wash) { this.j = A.rng(jitter); if (wash !== undefined) this.wr = A.rng(wash); return this; }
@@ -54,6 +57,17 @@
         const P = R.map(p => [p[0] + (j() - 0.5) * 2 * amp, p[1] + (j() - 0.5) * 2 * amp]);
         this._trace(P, o.closed); c.lineWidth = lw; c.globalAlpha = a; c.stroke();
       };
+      // A pen line is not a wire: it swells in the middle of the stroke and thins where the nib lands and
+      // lifts. Open strokes of any weight are drawn as a filled ribbon with that profile.
+      if ((o.taper ?? this.taper) && !o.closed && w >= 1.05 && R.length >= 3) {
+        const P = R.map(p => [p[0] + (j() - 0.5) * 2 * wob, p[1] + (j() - 0.5) * 2 * wob]), n = P.length, Lf = [], Rt = [], hw = w * (0.5 + j() * 0.16), lean = 0.35 + j() * 0.3;
+        for (let i = 0; i < n; i++) {
+          const a0 = P[Math.max(0, i - 1)], b0 = P[Math.min(n - 1, i + 1)]; let dx = b0[0] - a0[0], dy = b0[1] - a0[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+          const u = i / (n - 1), h = hw * (0.22 + 1.05 * Math.pow(Math.sin(Math.PI * Math.pow(u, lean * 2)), 0.6));
+          Lf.push([P[i][0] - dy * h, P[i][1] + dx * h]); Rt.push([P[i][0] + dy * h, P[i][1] - dx * h]);
+        }
+        this._trace([...Lf, ...Rt.reverse()], true); c.fillStyle = o.c || this.inkCol; c.globalAlpha = al; c.fill();
+      } else
       pass(wob, w * (0.85 + j() * 0.3), al);
       if (o.dbl !== false && w >= 1.1) pass(wob * 1.5, w * 0.5, al * 0.45);
       c.globalAlpha = 1;
@@ -101,7 +115,13 @@
         c.save(); c.clip(); c.globalAlpha = (o.mot ?? 0.4) * this.al; c.fillStyle = this.mottle;
         let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
         for (const p of pts) { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; }
-        c.fillRect(x0 - 6, y0 - 6, x1 - x0 + 12, y1 - y0 + 12); c.restore();
+        c.fillRect(x0 - 6, y0 - 6, x1 - x0 + 12, y1 - y0 + 12);
+        // light falls from the upper left: a violet glaze gathers toward the lower right of each shape
+        if (this.glaze && o.glaze !== false && a >= 0.25 && x1 - x0 > 9 && y1 - y0 > 9) {
+          const gr = c.createLinearGradient(x0, y0, x0 + (x1 - x0) * 0.8, y1); gr.addColorStop(0, 'rgba(255,244,214,0.10)'); gr.addColorStop(0.45, 'rgba(98,84,140,0)'); gr.addColorStop(1, 'rgba(98,84,140,0.24)');
+          c.globalAlpha = this.al; c.fillStyle = gr; c.fillRect(x0 - 6, y0 - 6, x1 - x0 + 12, y1 - y0 + 12);
+        }
+        c.restore();
       }
       c.globalAlpha = 1;
       return this;
@@ -113,6 +133,7 @@
     washRect(x, y, w, h, col, o) { return this.wash(A.rectPts(x, y, w, h), col, o); }
     paintRect(x, y, w, h, col, o) { return this.wash(A.rectPts(x, y, w, h), col, { under: true, ...o }); }
 
+    lit(x, y, r = 12) { if (this.lights) this.lights.push([x, y, r]); return this; }
     // A filled, outlined limb or sleeve: a polyline of joints with a half-width at each.
     limb(pts, widths, col, o = {}) {
       const L = [], R = [], n = pts.length;

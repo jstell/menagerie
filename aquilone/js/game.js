@@ -62,13 +62,16 @@
     },
   };
   try { G.best = parseInt(localStorage.getItem('aquilone.best') || '0', 10) || 0; } catch (e) { G.best = 0; }
+  try { A.P.who = Q.get('rider') || localStorage.getItem('aquilone.rider') || 'f'; } catch (e) { A.P.who = 'f'; }
+  const swapRider = () => { A.P.who = A.P.who === 'm' ? 'f' : 'm'; try { localStorage.setItem('aquilone.rider', A.P.who); } catch (e) { /* private mode */ } };
+  const RIDER_Y = 410;   // where the rider chooser sits on the title card
 
   // ───── input ─────
   const In = { x: 600, y: 260, keys: {}, viaKeys: false, moved: false };
   const toLogical = (cx, cy) => { const r = cv.getBoundingClientRect(), k = cv.width / r.width; return [(cx - r.left) * k / S, ((cy - r.top) * k - offY) / S]; };
   const act = () => {
     if (G.paused) { G.paused = false; return; }
-    if (G.state === 'title') G.start();
+    if (G.state === 'title') { if (Math.abs(In.y - RIDER_Y + 6) < 17 && Math.abs(In.x - (A.W.W / 2 + 56)) < 210 && In.moved) { swapRider(); return; } G.start(); }
     else if (G.state === 'play') { if (A.P.hop()) { G.sfx('bell', 0.3, 0.95 + Math.random() * 0.1); A.actors.puff(A.P.x - 20, A.P.y - 2, 3); } }
     else if (G.state === 'over' && G.overT > 1.3) G.start();
   };
@@ -79,7 +82,7 @@
     e.preventDefault();
     for (const t of e.changedTouches) {
       if (touchId === null && G.state === 'play') { touchId = t.identifier; touchT = performance.now(); const p = toLogical(t.clientX, t.clientY); In.x = p[0] + 40; In.y = p[1] - 90; In.viaKeys = false; }
-      else act();
+      else { if (G.state === 'title') { [In.x, In.y] = toLogical(t.clientX, t.clientY); In.moved = true; } act(); }
     }
   }, { passive: false });
   cv.addEventListener('touchmove', e => { e.preventDefault(); for (const t of e.changedTouches) if (t.identifier === touchId) { const p = toLogical(t.clientX, t.clientY); In.x = p[0] + 40; In.y = p[1] - 90; } }, { passive: false });
@@ -90,6 +93,7 @@
     In.keys[e.code] = true;
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); act(); }
     else if (e.code === 'KeyM') A.audio.toggleMute();
+    else if (G.state === 'title' && /^Arrow(Left|Right)$|^KeyR$/.test(e.code)) { swapRider(); e.preventDefault(); }
     else if (e.code === 'KeyP' && G.state === 'play') G.paused = !G.paused;
     else if (/^Arrow|Key[WASD]$/.test(e.code)) { if (!In.viaKeys) { In.viaKeys = true; In.x = A.P.kite.x; In.y = A.P.kite.y; } e.preventDefault(); }
   });
@@ -132,7 +136,7 @@
       if (G.state === 'over') G.overT += dt;
     }
     P.update(dt, target, base, G);
-    W.camX = P.x - P.sx; W.update(dt);
+    W.camX = P.x - P.sx; W.camSpeed = P.speed; W.update(dt);
     A.actors.update(dt, G);
     if (P.on && Math.random() < dt * (2 + P.speed / 90)) A.actors.puff(P.x - 40, P.y - 1, 1);
     // a new tableau: announce it
@@ -170,8 +174,9 @@
     g.seed(b * 41 + 4, 4);
     if (G.state !== 'title') {
       A.drawNote(g, x0, y0 - 6, 1.25, C.red, 0, true, -0.1);
-      g.text(String(G.notes), x0 + 28, y0 + 9, { size: 42, font: A.FONT.title, align: 'left' });
-      g.text((G.dist / PX_PER_KM).toFixed(1).replace('.', ',') + ' km', x0 - 12, y0 + 38, { size: 18, font: A.FONT.text, style: 'italic', align: 'left', a: 0.75 });
+      const hud = (A.W.nf || 0) > 0.45 ? '#fff0cc' : C.ink;
+      g.text(String(G.notes), x0 + 28, y0 + 9, { size: 42, font: A.FONT.title, align: 'left', c: hud });
+      g.text((G.dist / PX_PER_KM).toFixed(1).replace('.', ',') + ' km', x0 - 12, y0 + 38, { size: 18, font: A.FONT.text, style: 'italic', align: 'left', a: 0.75, c: hud });
       const cols = [C.red, C.cerulean, C.ochre, C.leaf];
       for (let i = 0; i < 4; i++) {
         const bx = W - A.FRAME.RW - 46 - i * 36, by = y0 - 8;
@@ -197,7 +202,7 @@
   function drawTitle() {
     const W = A.W.W, cx = W / 2 + 56, t = A.W.t, b = A.W.boil;
     g.seed(b * 43 + 6, 6);
-    blot(cx, 290, 500, 262, 0.92);
+    blot(cx, 300, 510, 280, 0.92);
     g.text('une promenade à bicyclette, vers 1900', cx, 124, { size: 30, font: A.FONT.script, a: 0.85 });
     g.text('L’Aquilone', cx + 5, 241, { size: 138, font: A.FONT.title, c: C.red, a: 0.55 });
     g.text('L’Aquilone', cx, 236, { size: 138, font: A.FONT.title });
@@ -205,9 +210,15 @@
     g.text('— le cerf-volant —', cx, 299, { size: 20, font: A.FONT.sign, ls: 5, a: 0.8 });
     g.text('Move the mouse to fly the kite  ·  click or press Space to hop', cx, 350, { size: 22, font: A.FONT.text, style: 'italic' });
     g.text('Gather the music, mind the weather, and keep the bows on your tail.', cx, 379, { size: 19, font: A.FONT.text, style: 'italic', a: 0.75 });
+    // choose your rider: click a name, or press the left / right arrow
+    const man = A.P.who === 'm';
+    g.text('Mademoiselle', cx - 24, RIDER_Y, { size: 27, font: A.FONT.script, align: 'right', c: man ? C.ink : C.red, a: man ? 0.5 : 1 });
+    g.text('Monsieur', cx + 24, RIDER_Y, { size: 27, font: A.FONT.script, align: 'left', c: man ? C.red : C.ink, a: man ? 1 : 0.5 });
+    g.text('ou', cx, RIDER_Y - 1, { size: 16, font: A.FONT.text, style: 'italic', a: 0.6 });
+    const ux = man ? cx + 24 : cx - 24 - 150, uw = man ? 104 : 150; g.line(A.quadPts([ux, RIDER_Y + 9], [ux + uw / 2, RIDER_Y + 13], [ux + uw, RIDER_Y + 8], 6), { w: 1.6, c: C.red, step: 99 });
     const p = 0.6 + Math.sin(t * 3.2) * 0.4;
-    g.text('~  click to set off  ~', cx, 432, { size: 34, font: A.FONT.title, c: C.red, a: 0.45 + p * 0.5 });
-    g.text((G.best ? 'record : ' + G.best + ' notes   ·   ' : '') + 'M  music on / off   ·   P  pause   ·   arrow keys also steer the kite', cx, 468, { size: 15, font: A.FONT.text, style: 'italic', a: 0.6 });
+    g.text('~  click to set off  ~', cx, 458, { size: 34, font: A.FONT.title, c: C.red, a: 0.45 + p * 0.5 });
+    g.text((G.best ? 'record : ' + G.best + ' notes   ·   ' : '') + 'M  music   ·   P  pause   ·   ← →  choose rider   ·   arrow keys also steer the kite', cx, 492, { size: 15, font: A.FONT.text, style: 'italic', a: 0.6 });
   }
   function drawOver() {
     const W = A.W.W, cx = W / 2 + 20, b = A.W.boil, a = A.smooth(G.overT / 0.9);
@@ -234,6 +245,8 @@
     A.actors.drawRoad(g);
     A.P.draw(g, G);
     A.W.drawFront(g);
+    // night falls as a glaze over the finished painting; then everything that shines is put back on top
+    A.W.drawNight(g); A.W.drawLights(g);
     if (G.state === 'title') drawTitle();
     A.actors.drawSky(g);
     A.P.drawKite(g, G);
@@ -272,10 +285,11 @@
 
   async function boot() {
     try { await Promise.all(['138px "Griffy"', '20px "Bigelow Rules"', '30px "Parisienne"', '20px "IM Fell DW Pica"', 'italic 20px "IM Fell DW Pica"', '20px "IM Fell DW Pica SC"'].map(f => document.fonts.load(f))); } catch (e) { /* fall back to system serif */ }
-    A.mottleCv = A.makeMottle();
+    A.mottleCv = A.makeMottle(); A.glowCv = A.makeGlow();
     A.audio.init(); if (Q.has('mute')) A.audio.muted = true;
     resize();
-    const x0 = START_X + (parseFloat(Q.get('x')) || 0);
+    // ?zone=c|t|j|r|f starts in that tableau; ?x=N nudges further along
+    const x0 = (Q.has('zone') ? A.zoneStart(Q.get('zone')) + 2600 : START_X) + (parseFloat(Q.get('x')) || 0);
     A.P.reset(x0); A.P.sx = Math.round(A.W.W * 0.27);
     A.actors.reset(x0, false); A.W.reset(x0 - A.P.sx);
     if (AUTO) { G.start(); A.P.inv = 0; if (Q.has('god')) G.lose = () => { A.P.inv = 2; }; }

@@ -1,11 +1,11 @@
 'use strict';
-// Sound: three café tunes that cross-fade as the road passes from countryside to town to sea,
+// Sound: five café tunes that cross-fade as the road passes from countryside to village, garden, sea and festa,
 // matching ambience beds, one-shot effects, and a little synthesized music-box chime for notes.
 // Plain <audio> elements keep it working from file:// as well as from a server.
 (() => {
   const A = window.A, BASE = 'assets/audio/';
-  const ZK = ['campagna', 'paese', 'riviera'];
-  const SFX = ['bell', 'land', 'honk', 'crow', 'gull', 'thunder', 'flap', 'harp', 'meow', 'crash', 'bravo', 'fin', 'flourish'];
+  const ZK = ['campagna', 'paese', 'giardino', 'riviera', 'festa'];
+  const SFX = ['bell', 'land', 'honk', 'crow', 'gull', 'thunder', 'flap', 'harp', 'meow', 'crash', 'bravo', 'fin', 'flourish', 'firework'];
   // G major pentatonic — the tunes were composed in G major / E minor
   const SCALE = [392, 440, 493.88, 587.33, 659.25, 783.99, 880, 987.77, 1174.66, 1318.51];
 
@@ -25,8 +25,8 @@
     mix(z, dt, duck = 1) {
       if (!this.started) return;
       this.master += ((this.muted ? 0 : 1) - this.master) * Math.min(1, dt * 3);
-      const w = [z.c, z.t, z.r];
-      for (let i = 0; i < 3; i++) {
+      const w = [z.c, z.t, z.j, z.r, z.f];
+      for (let i = 0; i < w.length; i++) {
         // equal-power-ish crossfade
         this.set(this.music[i], Math.sqrt(w[i]) * this.musicVol * this.master * duck);
         this.set(this.amb[i], w[i] * this.ambVol * this.master);

@@ -13,17 +13,18 @@
     let s = SPR.cache.get(key);
     if (s) return s;
     const d = SPR.defs[name], S = SPR.scale, P = SPR.PAD, nf = d.frames || 3, nh = nameHash(name);
-    const w = d.w + 2 * P, h = d.h + P + (d.b ?? 16), frames = [];
+    const w = d.w + 2 * P, h = d.h + P + (d.b ?? 16), frames = []; let lights = null;
     for (let f = 0; f < nf; f++) {
       const cv = document.createElement('canvas'); cv.width = Math.ceil(w * S); cv.height = Math.ceil(h * S);
       const c = cv.getContext('2d'); c.scale(S, S); c.translate(d.w / 2 + P, d.h + P);
-      const g = new A.Sketch(c); g.mottle = c.createPattern(A.mottleCv, 'repeat');
+      const g = new A.Sketch(c); g.mottle = c.createPattern(A.mottleCv, 'repeat'); g.glaze = true; g.lights = f === 0 ? [] : null;
       if (d.far) { g.k = 0.6; g.lw = 0.75; g.inkCol = C.inkSoft; }
       g.seed(nh + f * 7717 + v * 13, nh + v * 101);
       d.draw(g, A.rng(nh + v * 977 + 5), v);
+      if (f === 0) lights = g.lights;
       frames.push(cv);
     }
-    s = { frames, w, h, ox: d.w / 2 + P, oy: d.h + P, d };
+    s = { frames, w, h, ox: d.w / 2 + P, oy: d.h + P, d, lights };
     SPR.cache.set(key, s);
     return s;
   };
@@ -373,6 +374,7 @@
   function windowAt(g, r, x, y, w, h, o = {}) {   // x centre, y top
     const x0 = x - w / 2;
     g.paintRect(x0, y, w, h, o.glass || C.prussian, { a: o.lit ? 0.2 : 0.42, spread: 1 });
+    if (A.hash(Math.round(x * 7 + y * 13) + 5) < 0.5) g.lit(x, y + h / 2, Math.max(8, w * 0.7));
     g.rect(x0, y, w, h, { w: 1.2 }); g.seg(x, y, x, y + h, { w: 0.8, over: 0 }); g.seg(x0, y + h * 0.42, x0 + w, y + h * 0.42, { w: 0.8, over: 0 });
     if (o.arch) { const a = A.arcPts(x, y, w / 2, w * 0.42, Math.PI, TAU, 6); g.paint(a, o.glass || C.prussian, { a: 0.4 }); g.line(a, { w: 1.1, step: 99 }); }
     if (o.shut) for (const k of [-1, 1]) {
@@ -435,6 +437,12 @@
     const wallCol = r.pick(it ? WALLS_IT : WALLS_FR), shut = r.pick(it ? SHUT_IT : SHUT_FR), trim = r.pick([C.red, C.rose, C.ochre, C.white]);
     g.paint(A.rectPts(x0, -H, w, H + 18), wallCol, { a: it ? 0.7 : 0.6, spread: 3 });
     g.hatch(x1 - 16, -H, 16, H + 10, { gap: 5, a: 0.25 });
+    // a cool shadow down the turned side and under the eaves
+    g.wash(A.rectPts(x1 - 20, -H, 20, H + 12), C.lavender, { a: 0.3, edge: false, spread: 1.2, glaze: false });
+    g.wash(A.rectPts(x0, -H, w, 8), C.lavender, { a: 0.3, edge: false, spread: 1, glaze: false });
+    // the draughtsman's pencil guides, left showing past the corners
+    const pencil = { w: 0.6, a: 0.2, c: '#5f6070', dbl: false, taper: false, wob: 0.5 };
+    g.line([[x0, 16], [x0 - 1, -H - 52]], pencil); g.line([[x1, 16], [x1 + 1, -H - 46]], pencil); g.line([[x0 - 26, -H], [x1 + 24, -H - 1]], pencil); g.line([[x0 - 16, 0], [x1 + 18, 0]], pencil);
     // roof
     if (!it) {
       const rf = [[x0 - 5, -H], [x1 + 5, -H], [x1 - 9, -H - 36], [x0 + 9, -H - 36]];
@@ -519,6 +527,7 @@
     for (let x = x0 + 12 + (w - 24) / 5; x < x1 - 14; x += (w - 24) / 5) g.seg(x, -58, x, 0, { w: 0.9, over: 0 });
     g.text(it ? 'Gelati · Vini' : 'Vins · Liqueurs', 0, -40, { size: 11, font: A.FONT.script, c: '#fff4d6', a: 0.9 });
     awning(g, 0, -64, w - 8, col, { d: 26 });
+    for (let i = 0; i < 5; i++) g.lit(-90 + i * 45, -30, 15);
     // potted bays
     for (const k of [-1, 1]) { const px = k * (w / 2 + 2); g.paint([[px - 8, 12], [px + 8, 12], [px + 6, -2], [px - 6, -2]], C.terracotta, { a: 0.8 }); g.poly([[px - 8, 12], [px + 8, 12], [px + 6, -2], [px - 6, -2]], { w: 1.1 }); g.seg(px, -2, px, -20, { w: 1.2 }); crown(g, r, px, -30, 12, 12, C.leaf, { scr: 1, bumps: 9 }); }
     // terrace
@@ -543,7 +552,7 @@
     g.paint([[-5, 4], [5, 4], [3, -12], [-3, -12]], C.pine, { a: 0.75 }); g.line([[-5, 4], [-3, -12], [-1.6, -128]], { w: 1.2 }); g.line([[5, 4], [3, -12], [1.6, -128]], { w: 1.2 });
     g.wash([[-1.6, -12], [1.6, -12], [1.6, -128], [-1.6, -128]], C.pine, { a: 0.7, spread: 0.3 });
     for (const y of [-30, -110]) g.seg(-4, y, 4, y, { w: 1.4 });
-    const lan = [[-7, -130], [7, -130], [10, -152], [-10, -152]]; g.paint(lan, C.straw, { a: 0.75 }); g.poly(lan, { w: 1.2 });
+    const lan = [[-7, -130], [7, -130], [10, -152], [-10, -152]]; g.paint(lan, C.straw, { a: 0.75 }); g.poly(lan, { w: 1.2 }); g.lit(0, -141, 15);
     g.poly([[-12, -152], [12, -152], [0, -164]], { w: 1.2 }); g.wash([[-12, -152], [12, -152], [0, -164]], C.pine, { a: 0.7 }); g.seg(0, -164, 0, -170, { w: 1.2 });
     if (v) { g.line(A.quadPts([2, -112], [22, -120], [22, -100], 6), { w: 1.1 }); g.curl(22, -104, 4, 1, { w: 0.9, dbl: false }); g.scribble(22, -92, 9, 7, 12, { c: C.leaf, a: 0.9, w: 1.3 }); for (let i = 0; i < 5; i++) g.paintEll(22 + r.range(-8, 8), -92 + r.range(-5, 5), 2.2, 2.2, r.pick([C.red, C.rose, C.ochre]), { a: 0.95, mottle: false }); }
   } });
@@ -654,6 +663,239 @@
     g.line([[-12, -100], [-8, -104]], { w: 0.8, dbl: false }); g.line([[12, -100], [16, -104]], { w: 0.8, dbl: false });
   } });
 
+
+  // ───────────────────────── the public garden ─────────────────────────
+  def('bandstand', { w: 240, h: 240, b: 18, v: 2, rare: true, frames: 2, sw: 0.36, draw(g, r, v) {
+    const base = [[-86, 8], [86, 8], [76, -22], [-76, -22]]; g.paint(base, C.stone, { a: 0.6 }); g.poly(base, { w: 1.5 });
+    for (let i = 0; i < 3; i++) g.seg(-24 - i * 4, 8 - i * 9, 24 + i * 4, 8 - i * 9, { w: 1 });                 // steps
+    g.seg(-80, -8, 80, -8, { w: 0.8, a: 0.5 });
+    // slender iron columns with scrolled brackets
+    for (let i = 0; i < 6; i++) { const x = -70 + i * 28; g.wash([[x - 2, -22], [x + 2, -22], [x + 1.6, -150], [x - 1.6, -150]], C.pine, { a: 0.85, spread: 0.3 }); g.seg(x - 2, -22, x - 1.6, -150, { w: 1.1 }); g.seg(x + 2, -22, x + 1.6, -150, { w: 1.1 }); for (const k of [-1, 1]) g.curl(x + k * 7, -142, 5, k, { w: 0.9, turns: 0.9, dbl: false, c: C.pine }); }
+    // railing
+    g.seg(-72, -46, 72, -46, { w: 1.5, c: C.pine }); for (let x = -68; x <= 68; x += 7) g.line([[x, -45], [x + 3.5, -34], [x, -23]], { w: 0.7, c: C.pine, dbl: false, taper: false, step: 99 });
+    // music stands glimpsed inside
+    for (const x of [-30, 4, 36]) { g.seg(x, -24, x, -62, { w: 0.9 }); g.rect(x - 6, -72, 12, 10, { w: 0.9 }); }
+    // bell-shaped roof with a cut-out valance and a lyre on top
+    const roof = [[-96, -150], [96, -150], [72, -166], [40, -184], [16, -206], [0, -216], [-16, -206], [-40, -184], [-72, -166]];
+    g.paint(roof, v ? C.teal : C.slate, { a: 0.75, step: 99 }); g.line(roof, { closed: true, w: 1.5, step: 99 });
+    for (const k of [-0.66, -0.33, 0, 0.33, 0.66]) g.line(A.quadPts([0, -216], [k * 50, -190], [k * 96, -150], 6), { w: 0.7, a: 0.5, dbl: false });
+    const val = []; for (let i = 0; i < 16; i++) val.push(...A.arcPts(-90 + i * 12, -150, 6, 7, Math.PI, 0, 4)); g.wash([...val, [96, -150], [-96, -150]], C.cream, { a: 0.7, step: 99 }); g.line(val, { w: 1, step: 99 });
+    for (let i = 0; i < 5; i++) g.lit(-72 + i * 36, -138, 13);
+    g.seg(0, -216, 0, -226, { w: 1.2 }); g.arc(0, -232, 5, 7, 0.4, Math.PI - 0.4, { w: 1.2, c: C.ochre }); g.seg(-4, -238, 4, -238, { w: 1.1, c: C.ochre });
+  } });
+  // a carousel horse, for the merry-go-round
+  function galloper(g, x, y, s, col, sad) {
+    const c = g.c; c.save(); c.translate(x, y); c.scale(s, s);
+    const o = { taper: false, dbl: false, step: 99 };
+    g.line([[-9, 2], [-13, 9], [-8, 13]], { w: 1.6, ...o }); g.line([[8, 2], [14, 6], [11, 12]], { w: 1.6, ...o });
+    const b = A.arcPts(0, 0, 14, 7, 0, TAU, 10); g.wash(b, col, { under: true, a: 0.2, step: 99, mottle: false }); g.line(b, { closed: true, w: 1.2, step: 99, dbl: false });
+    const nk = [[9, -3], [15, -15], [20, -12], [14, 1]]; g.wash(nk, col, { under: true, a: 0.2, step: 99, mottle: false }); g.line([[9, -4], [15, -15]], { w: 1.2, ...o });
+    const hd = [[14, -17], [19, -19], [26, -11], [23, -8], [17, -10]]; g.wash(hd, col, { under: true, a: 0.2, step: 99, mottle: false }); g.line(hd, { closed: true, w: 1.1, step: 99, dbl: false }); g.dot(19.5, -14.5, 0.9);
+    g.line([[14, -18], [8, -8]], { w: 2.2, c: C.umber, ...o }); g.line(A.quadPts([-13, -2], [-21, -2], [-20, 8], 4), { w: 2, c: C.umber, ...o });
+    g.wash([[-5, -7], [5, -7], [6, 1], [-6, 1]], sad, { a: 0.95, spread: 0.3, mottle: false, edge: false }); g.line([[-6, 1], [-5, -7], [5, -7], [6, 1]], { w: 0.8, ...o });
+    c.restore();
+  }
+  def('carousel', { w: 230, h: 214, b: 16, v: 2, rare: true, frames: 2, sw: 0.36,
+    draw(g, r, v) {
+      const pf = [[-92, 6], [92, 6], [84, -12], [-84, -12]]; g.paint(pf, v ? C.teal : C.brick, { a: 0.8 }); g.poly(pf, { w: 1.5 });
+      const drum = A.rectPts(-24, -122, 48, 110); g.paint(drum, C.cream, { a: 0.5 }); g.poly(drum, { w: 1.3 });
+      for (let i = 0; i < 3; i++) { const m = A.arcPts(-14 + i * 14, -70, 5, 22, 0, TAU, 8); g.wash(m, C.sky, { a: 0.6, step: 99 }); g.line(m, { closed: true, w: 0.9, step: 99, c: C.ochre }); }
+      // striped canopy
+      const n = 9; for (let i = 0; i < n; i++) { const xa = -100 + i * 200 / n, xb = -100 + (i + 1) * 200 / n; g.paint([[xa, -122], [xb, -122], [0, -182]], i % 2 ? C.cream : (v ? C.teal : C.red), { a: i % 2 ? 0.4 : 0.85, spread: 0.8, edge: false, step: 99 }); }
+      g.poly([[-100, -122], [100, -122], [0, -182]], { w: 1.5 });
+      const val = []; for (let i = 0; i < 12; i++) val.push(...A.arcPts(-92 + i * 16.7, -122, 8.3, 10, Math.PI, 0, 4));
+      g.wash([...val, [100, -122], [-100, -122]], C.ochre, { a: 0.85, step: 99 }); g.line(val, { w: 1.1, step: 99 });
+      for (let i = 0; i < 12; i++) { g.dot(-92 + i * 16.7, -110, 1.5, { c: '#ffffff' }); if (i % 2 === 0) g.lit(-92 + i * 16.7, -110, 12); }
+      g.seg(0, -182, 0, -200, { w: 1.2 }); g.wash([[0, -200], [16, -196], [0, -191]], C.red, { a: 0.95, mottle: false }); g.line([[0, -200], [16, -196], [0, -191]], { w: 0.9, step: 99 });
+    },
+    // the horses go round: only the near half of the circle is drawn, rising and falling on their poles
+    live(g, x, y, sc, t, it) {
+      const c = g.c, list = [];
+      for (let i = 0; i < 6; i++) { const a = t * 0.8 + i * TAU / 6 + it.id, d = Math.cos(a); if (d > -0.15) list.push([d, Math.sin(a) * 74, i]); }
+      list.sort((p, q) => p[0] - q[0]); g.seed(A.W.boil * 9 + it.id, it.id);
+      c.save(); c.translate(x, y); c.scale(sc, sc);
+      for (const [d, hx, i] of list) {
+        const hy = -50 + Math.sin(t * 2.6 + i * 2.1) * 9, s = 0.82 + d * 0.3;
+        g.line([[hx, -120], [hx, -12]], { w: 1.6, c: C.ochre, dbl: false, taper: false });
+        galloper(g, hx, hy, s, ['#ffffff', C.cream, '#d9d4cc'][i % 3], [C.red, C.cerulean, C.leaf, C.ochre][i % 4]);
+      }
+      c.restore();
+    } });
+  def('statue', { w: 96, h: 180, v: 3, draw(g, r, v) {
+    const pl = [[-24, 6], [24, 6], [20, -4], [20, -58], [26, -64], [-26, -64], [-20, -58], [-20, -4]]; g.paint(pl, C.stone, { a: 0.65 }); g.line(pl, { closed: true, w: 1.4, step: 99 });
+    g.seg(-18, -12, 18, -12, { w: 0.8, a: 0.6 }); for (let i = 0; i < 3; i++) g.seg(-11, -44 + i * 7, 11, -44 + i * 7, { w: 0.5, a: 0.45, dbl: false, over: 0 });
+    g.inkCol = C.inkSoft; const st = '#d8d6cc';
+    if (v === 2) {      // a great urn spilling geraniums
+      const urn = [[-9, -64], [9, -64], [6, -74], [18, -92], [20, -106], [-20, -106], [-18, -92], [-6, -74]]; g.paint(urn, st, { a: 0.7, step: 99 }); g.line(urn, { closed: true, w: 1.3, step: 99 });
+      g.inkCol = C.ink; for (let i = 0; i < 7; i++) g.scribble(r.range(-20, 20), -112 + r.range(-8, 8), 10, 8, 7, { c: C.leaf, a: 0.85, w: 1.2 }); for (let i = 0; i < 10; i++) g.paintEll(r.range(-24, 24), -116 + r.range(-12, 10), 3, 3, r.pick([C.red, C.rose, C.pink]), { a: 0.95, mottle: false });
+      return;
+    }
+    // a draped figure, one arm lifted
+    const robe = [[-11, -64], [11, -64], [9, -92], [8, -118], [-8, -118], [-10, -90]]; g.paint(robe, st, { a: 0.7, step: 99 }); g.line(robe, { closed: true, w: 1.3, step: 99 });
+    for (const x of [-5, 0, 5]) g.line(A.quadPts([x, -112], [x + 2, -90], [x * 1.4, -66], 5), { w: 0.6, a: 0.5, dbl: false });
+    g.limb([[7, -114], [16, -124], [v ? 20 : 12, -142]], [3, 2.5, 2], st, { a: 0.7 }); g.limb([[-7, -114], [-13, -102], [-9, -92]], [3, 2.5, 2], st, { a: 0.7 });
+    g.paintEll(0, -126, 6, 7, st, { a: 0.7 }); g.ell(0, -126, 6, 7, { w: 1.2 });
+    if (v) { g.arc(20, -148, 6, 5, 0, TAU, { w: 1.1 }); for (let i = 0; i < 5; i++) g.seg(20, -148, 20 + Math.cos(-0.4 - i * 0.6) * 9, -148 + Math.sin(-0.4 - i * 0.6) * 9, { w: 0.6, over: 0, dbl: false }); }
+    else g.line([[12, -142], [12, -158], [7, -152], [17, -152]], { w: 1.1, step: 99 });
+    g.inkCol = C.ink;
+    // and, inevitably, a pigeon
+    g.paintEll(-1, -136, 5, 3.4, C.slate, { a: 0.85, mottle: false }); g.ell(-1, -136, 5, 3.4, { w: 0.9, dbl: false }); g.paintEll(3.5, -139, 2.4, 2.4, C.slate, { a: 0.85, mottle: false }); g.line([[5.5, -139], [8, -138.4]], { w: 1, c: C.ochre, dbl: false });
+  } });
+  def('guignol', { w: 130, h: 190, v: 2, frames: 2, draw(g, r, v) {
+    const x0 = -32, w = 64, Hh = 148, col = v ? C.cerulean : C.red;
+    g.paintRect(x0, -Hh, w, Hh + 8, C.cream, { a: 0.35 });
+    for (let i = 0; i < 8; i += 2) g.wash(A.rectPts(x0 + i * w / 8, -Hh, w / 8, Hh + 8), col, { a: 0.8, spread: 0.6, edge: false, mottle: false });
+    g.poly([[x0, 6], [x0, -Hh], [x0 + w, -Hh], [x0 + w, 6]], { closed: false, w: 1.5 });
+    const st = A.rectPts(-24, -124, 48, 46); g.paint(st, C.prussian, { a: 0.8 }); g.poly(st, { w: 1.3 });
+    // the puppets: Guignol with his stick, and the gendarme
+    const pup = (x, hat, body, arm) => { g.paintRect(x - 5, -96, 10, 18, body, { a: 0.9, mottle: false }); g.paintEll(x, -102, 5.5, 6, C.skin, { a: 0.7, mottle: false }); g.ell(x, -102, 5.5, 6, { w: 1 }); g.dot(x + 2, -103, 0.9); g.wash([[x - 6, -106], [x + 6, -106], [x + 4, -113], [x - 4, -113]], hat, { a: 0.95, spread: 0.3, mottle: false }); g.line([[x + 4 * arm, -92], [x + 12 * arm, -104]], { w: 2, c: body, dbl: false }); };
+    pup(-9, C.umber, C.ochre, 1); g.seg(3, -104, 9, -118, { w: 1.6, c: C.wood }); pup(11, C.prussian, C.red, -1);
+    for (const k of [-1, 1]) { const sw = [[k * 24, -124], [k * 6, -124], [k * 18, -112], [k * 24, -96]]; g.paint(sw, C.red, { a: 0.9, step: 99 }); g.line(sw, { closed: true, w: 1, step: 99 }); }
+    const ped = [[x0 - 5, -Hh], [x0 + w + 5, -Hh], [0, -Hh - 26]]; g.paint(ped, C.ochre, { a: 0.85 }); g.poly(ped, { w: 1.4 });
+    signBand(g, 0, -146, 58, 15, 'GUIGNOL', '#6e2f2a', { size: 12, ls: 1.5, font: A.FONT.poster });
+    g.lit(0, -100, 20);
+    // an audience of two
+    person(g, -52, 6, { kind: 'gent', s: 0.6, col: '#ffffff', jersey: C.prussian, legs: C.prussian, hat: 'cap', hatCol: C.prussian, mustache: false, armA: 2.4, bendA: 0.4 });
+    person(g, 50, 6, { kind: 'lady', s: 0.6, col: C.pink, hat: 'bonnet', flip: true, armA: 1.2, bendA: 1.2 });
+  } });
+  def('flowerbed', { w: 210, h: 50, b: 10, v: 4, sw: 0.44, draw(g, r, v) {
+    const soil = A.arcPts(0, 4, 92, 20, Math.PI, TAU, 14); g.paint(soil, C.umber, { a: 0.45, step: 99 }); g.line(soil, { w: 1.1, step: 99, a: 0.7 });
+    const cols = [[C.red, C.ochre], [C.rose, '#ffffff'], [C.lavender, C.pink], [C.ochre, C.red]][v % 4];
+    for (let row = 0; row < 3; row++) for (let i = 0; i < 13 - row * 2; i++) {
+      const x = -78 + row * 13 + i * 13 + r.range(-2, 2), y = 0 - row * 5, h = 13 + row * 3;
+      g.line([[x, y], [x + r.range(-1.5, 1.5), y - h]], { w: 1, c: C.leaf, dbl: false, taper: false });
+      const cup = [[x - 3, y - h - 5], [x - 1, y - h - 2], [x, y - h - 6], [x + 1, y - h - 2], [x + 3, y - h - 5], [x + 2.6, y - h + 1], [x - 2.6, y - h + 1]]; g.wash(cup, cols[(row + i) % 2], { a: 0.95, spread: 0.3, mottle: false, step: 99 }); g.line(cup, { closed: true, w: 0.6, step: 99, dbl: false });
+    }
+    for (let x = -90; x <= 90; x += 12) g.scribble(x, 5, 8, 4, 6, { c: C.pine, a: 0.8, w: 1.2 });
+  } });
+  def('topiary', { w: 64, h: 136, v: 3, draw(g, r, v) {
+    const box = [[-14, 6], [14, 6], [13, -18], [-13, -18]]; g.paint(box, '#ffffff', { a: 0.1 }); g.poly(box, { w: 1.3 }); g.poly([[-9, 1], [9, 1], [8, -13], [-8, -13]], { w: 0.8, c: C.pine });
+    for (const k of [-1, 1]) g.paintEll(k * 13, -21, 2.4, 2.4, C.ochre, { a: 0.9, mottle: false });
+    g.seg(0, -18, 0, -40, { w: 2, c: C.wood });
+    const bush = (pts) => { g.paint(pts, C.pine, { a: 0.75, step: 99 }); g.line(pts, { closed: true, w: 1.3, step: 99, wob: 1.2 }); };
+    if (v === 0) { bush([[-17, -36], [17, -36], [2, -118], [-2, -118]]); for (let i = 0; i < 6; i++) g.scribble(r.range(-8, 8), r.range(-90, -44), 5, 7, 5, { a: 0.4 }); }
+    else if (v === 1) { bush(g.scallop(0, -54, 17, 16, 9, { depth: 0.14 })); g.seg(0, -70, 0, -80, { w: 1.8, c: C.wood }); bush(g.scallop(0, -92, 12, 12, 8, { depth: 0.14 })); g.scribble(0, -54, 9, 9, 7, { a: 0.4 }); }
+    else { for (let i = 0; i < 4; i++) bush(g.scallop((i % 2 ? 4 : -4), -46 - i * 19, 17 - i * 3.4, 9 - i, 8, { depth: 0.14 })); }
+  } });
+  def('rosearch', { w: 140, h: 170, v: 2, draw(g, r, v) {
+    for (const k of [-1, 1]) { g.seg(k * 44, 6, k * 44, -96, { w: 1.6, c: C.pine }); g.seg(k * 34, 6, k * 34, -96, { w: 1.2, c: C.pine }); for (let y = -8; y > -96; y -= 14) g.line([[k * 44, y], [k * 34, y - 7], [k * 44, y - 14]], { w: 0.7, c: C.pine, dbl: false, taper: false, step: 99 }); }
+    g.line(A.arcPts(0, -96, 44, 44, Math.PI, TAU, 14), { w: 1.6, c: C.pine, step: 99 }); g.line(A.arcPts(0, -96, 34, 34, Math.PI, TAU, 12), { w: 1.2, c: C.pine, step: 99 });
+    const cols = v ? [C.rose, '#ffffff', C.pink] : [C.red, C.rose, C.pink];
+    for (let i = 0; i < 26; i++) { const a = Math.PI + i / 25 * Math.PI, rr = 39 + r.range(-8, 8), x = Math.cos(a) * rr, y = -96 + Math.sin(a) * rr; g.scribble(x, y, 9, 8, 6, { c: C.leaf, a: 0.85, w: 1.2 }); }
+    for (const k of [-1, 1]) for (let i = 0; i < 9; i++) g.scribble(k * 39 + r.range(-7, 7), -6 - i * 11, 8, 8, 6, { c: C.leaf, a: 0.85, w: 1.2 });
+    for (let i = 0; i < 40; i++) { const onArch = i < 24, a = Math.PI + r() * Math.PI, rr = 39 + r.range(-9, 9), x = onArch ? Math.cos(a) * rr : r.sign() * (39 + r.range(-8, 8)), y = onArch ? -96 + Math.sin(a) * rr : r.range(-96, -4); g.paintEll(x, y, 2.8, 2.6, r.pick(cols), { a: 0.95, mottle: false }); g.ell(x, y, 2.8, 2.6, { w: 0.5, dbl: false, a: 0.6 }); }
+  } });
+  def('ironfence', { w: 262, h: 84, b: 30, v: 2, far: true, draw(g, r, v) {
+    g.inkCol = C.pine;
+    g.seg(-131, -14, 131, -14, { w: 1.6 }); g.seg(-131, -52, 131, -52, { w: 1.3 });
+    for (let x = -124; x <= 124; x += 9) { g.line([[x, 20], [x, -62]], { w: 0.9, dbl: false, taper: false, wob: 0.4 }); g.line([[x - 2.4, -62], [x, -70], [x + 2.4, -62]], { w: 0.9, dbl: false, taper: false, step: 99 }); }
+    for (let x = -115; x <= 115; x += 18) g.ell(x, -33, 4.5, 8, { w: 0.6, dbl: false, a: 0.7 });
+    g.inkCol = C.inkSoft;
+    for (const x of [-131, 0]) { g.paintRect(x - 7, -66, 14, 90, C.stone, { a: 0.6 }); g.rect(x - 7, -66, 14, 86, { w: 1.2 }); g.paintEll(x, -73, 7, 7, C.stone, { a: 0.6 }); g.ell(x, -73, 7, 7, { w: 1.1 }); }
+  } });
+  def('pond', { w: 320, h: 70, b: 10, v: 2, draw(g, r, v) {
+    const water = A.arcPts(0, -8, 140, 17, 0, TAU, 22); g.paint(water, C.sea, { a: 0.7, step: 99 }); g.line(water, { closed: true, w: 1.3, step: 99, c: C.inkSoft });
+    g.line(A.arcPts(0, -6, 146, 20, 0.15, Math.PI - 0.15, 18), { w: 2.4, c: C.stone, step: 99, a: 0.9 }); g.line(A.arcPts(0, -5, 147, 21, 0.15, Math.PI - 0.15, 18), { w: 0.9, step: 99 });
+    for (let i = 0; i < 9; i++) { const x = r.range(-110, 110), y = -8 + r.range(-9, 9); g.line([[x - 8, y], [x + 8, y]], { w: 0.9, c: '#ffffff', a: 0.9, dbl: false, taper: false }); }
+    // swans
+    const swan = (x, y, k) => { const b = [[x - 13 * k, y], [x + 9 * k, y], [x + 6 * k, y - 8], [x - 5 * k, y - 10], [x - 15 * k, y - 6]]; g.paint(b, '#ffffff', { a: 0.9, step: 99, mottle: false, edge: false }); g.line(b, { closed: true, w: 1.1, step: 99 }); const nk = A.bezPts([x + 6 * k, y - 7], [x + 14 * k, y - 12], [x + 2 * k, y - 20], [x + 11 * k, y - 25], 8); g.line(nk, { w: 3.6, c: '#ffffff', dbl: false, a: 1, taper: false }); g.line(nk.map(p => [p[0] - 1.6, p[1]]), { w: 0.9, dbl: false, taper: false }); g.line(nk.map(p => [p[0] + 1.6, p[1] + 0.6]), { w: 0.9, dbl: false, taper: false }); g.line([[x + 11 * k, y - 25], [x + 16 * k, y - 23]], { w: 1.6, c: C.terracotta, dbl: false }); g.dot(x + 11 * k, y - 25.6, 0.8); };
+    swan(-60, -6, 1); swan(-22, -12, -1);
+    // a toy yacht, and a little jet of water
+    g.seg(58, -8, 58, -30, { w: 1 }); g.wash([[59, -29], [59, -11], [72, -11]], C.red, { a: 0.9, mottle: false }); g.line([[59, -29], [59, -11], [72, -11]], { closed: true, w: 0.8, step: 99, dbl: false }); g.line([[48, -8], [70, -8], [66, -4], [52, -4]], { closed: true, w: 1, step: 99 });
+    if (v) for (const k of [-1, 1]) g.line(A.quadPts([110, -10], [110 + k * 5, -44], [110 + k * 12, -10], 6), { w: 1, c: C.cerulean, a: 0.8 });
+    // reeds
+    for (let i = 0; i < 9; i++) { const x = -128 + i * 5 + r.range(-2, 2), h = r.range(18, 40); g.line([[x, 2], [x + r.range(-4, 4), -h]], { w: 1.2, c: C.olive, dbl: false }); if (i % 3 === 0) g.line([[x, -h + 2], [x, -h - 7]], { w: 3, c: C.umber, dbl: false, taper: false }); }
+  } });
+
+  // ───────────────────────── the festa by night ─────────────────────────
+  const STALLS = ['TIRO A SEGNO', 'DOLCI', 'LOTTERIA', 'FRITTELLE', 'ZUCCHERO', 'BIBITE'];
+  def('stall', { w: 160, h: 150, b: 18, v: 6, frames: 2, sw: 0.4, draw(g, r, v) {
+    const col = [C.red, C.teal, C.ochre, C.prussian, C.rose, C.leaf][v % 6];
+    // back cloth and the wares
+    g.paintRect(-54, -92, 108, 60, C.cream, { a: 0.35 });
+    if (v % 3 === 0) for (let i = 0; i < 5; i++) { g.ell(-38 + i * 19, -70, 6, 6, { w: 1 }); g.ell(-38 + i * 19, -70, 3, 3, { w: 0.8, c: C.red }); g.dot(-38 + i * 19, -70, 1, { c: C.red }); }
+    else for (let i = 0; i < 9; i++) { const x = -44 + (i % 5) * 20 + (i > 4 ? 10 : 0), y = i > 4 ? -80 : -60; g.paintEll(x, y, 5, 6, r.pick([C.red, C.ochre, C.rose, C.absinthe, C.sky]), { a: 0.95, mottle: false }); g.ell(x, y, 5, 6, { w: 0.8, dbl: false }); }
+    g.seg(-52, -52, 52, -52, { w: 1 });
+    person(g, r.range(-24, 24), -4, { kind: r.chance(0.5) ? 'gent' : 'lady', col: r.pick([C.umber, C.sage, C.slate, C.mauve]), hat: r.pick(['cap', 'boater', 'wide']), armA: 1.3, bendA: 0.8, noLegs: true, s: 0.92 });
+    // counter
+    const ct = A.rectPts(-58, -34, 116, 42); g.paint(ct, col, { a: 0.8 }); g.poly([[-58, 6], [-58, -34], [58, -34], [58, 6]], { closed: false, w: 1.5 }); g.seg(-62, -34, 62, -34, { w: 2 });
+    for (let x = -44; x < 58; x += 29) g.poly([[x - 9, -6], [x, -26], [x + 9, -6], [x, 2]], { w: 0.8, c: C.cream });
+    for (const k of [-1, 1]) g.seg(k * 56, -34, k * 58, -98, { w: 1.5 });
+    // striped roof with a scalloped valance, and the sign
+    const n = 8; for (let i = 0; i < n; i++) { const a0 = i / n, a1 = (i + 1) / n; g.paint([[-70 + 140 * a0, -98], [-70 + 140 * a1, -98], [-40 + 80 * a1, -126], [-40 + 80 * a0, -126]], i % 2 ? C.cream : col, { a: i % 2 ? 0.4 : 0.85, spread: 0.7, edge: false }); }
+    g.poly([[-70, -98], [70, -98], [40, -126], [-40, -126]], { w: 1.4 });
+    const sc = []; for (let i = 0; i < 10; i++) sc.push(...A.arcPts(-63 + i * 14, -98, 7, 7, Math.PI, 0, 4)); g.wash([...sc, [70, -98], [-70, -98]], C.cream, { a: 0.6, step: 99 }); g.line(sc, { w: 1, step: 99 });
+    signBand(g, 0, -146, 112, 17, STALLS[v % 6], '#5a2a26', { size: 13, ls: 1.5, tc: '#ffe9a8', font: A.FONT.poster });
+    g.seg(-50, -128, -50, -146, { w: 1 }); g.seg(50, -128, 50, -146, { w: 1 });
+    // paper lanterns under the eaves
+    for (const x of [-40, 0, 40]) { g.seg(x, -98, x, -88, { w: 0.7, over: 0 }); const ln = A.arcPts(x, -81, 6, 7.5, 0, TAU, 8); g.wash(ln, [C.ochre, C.red, C.rose][(x / 40 + 1 + v) % 3 | 0], { a: 0.95, step: 99, mottle: false }); g.line(ln, { closed: true, w: 0.9, step: 99, dbl: false }); g.lit(x, -81, 15); }
+  } });
+  def('striker', { w: 110, h: 236, v: 1, draw(g, r) {
+    const bd = [[-9, 0], [9, 0], [7, -196], [-7, -196]]; g.paint(bd, C.cream, { a: 0.5 }); g.poly(bd, { w: 1.4 });
+    for (let i = 0; i < 9; i++) { const y = -18 - i * 19; g.wash(A.rectPts(-7, y - 9, 14, 9), [C.red, C.ochre, C.teal][i % 3], { a: 0.75, spread: 0.3, edge: false, mottle: false }); g.seg(-7, y, 7, y, { w: 0.7, over: 0, dbl: false }); }
+    g.paintEll(0, -208, 11, 11, C.ochre, { a: 0.95, mottle: false }); g.ell(0, -208, 11, 11, { w: 1.4 }); g.dot(0, -200, 2); g.lit(0, -208, 18);
+    g.wash([[-7, -64], [7, -64], [7, -56], [-7, -56]], C.ink, { a: 0.85, mottle: false }); g.seg(0, 0, 0, -196, { w: 0.6, a: 0.5, over: 0, dbl: false });
+    const base = [[-24, 6], [28, 6], [22, -6], [-18, -6]]; g.paint(base, C.wood, { a: 0.8 }); g.poly(base, { w: 1.4 }); g.line([[14, -8], [30, -14]], { w: 2.4, c: C.wood });
+    // a strongman winding up
+    const h = person(g, 46, 6, { kind: 'bather', col: C.red, hat: 'none', flip: true, armA: 2.6, bendA: 0.5, armB: 2.3, bendB: 0.6, mustache: true });
+    g.seg(46 - h.ha[0], 6 + h.ha[1], 46 - h.ha[0] - 16, 6 + h.ha[1] - 30, { w: 1.8, c: C.wood }); g.paintRect(46 - h.ha[0] - 24, 6 + h.ha[1] - 40, 16, 11, C.umber, { a: 0.9 }); g.rect(46 - h.ha[0] - 24, 6 + h.ha[1] - 40, 16, 11, { w: 1.1 });
+    signBand(g, 0, -234, 70, 14, 'FORZA !', '#5a2a26', { size: 11, ls: 1.5, tc: '#ffe9a8', font: A.FONT.poster });
+  } });
+  def('lanterns', { w: 300, h: 250, b: 0, v: 3, draw(g, r) {
+    const y0 = -r.range(186, 220), pts = A.quadPts([-146, y0], [0, y0 + 60], [146, y0 - 8], 12);
+    g.line(pts, { w: 0.9, step: 99, taper: false });
+    const cols = [C.red, C.ochre, C.rose, C.cream, C.absinthe, C.sky];
+    for (let i = 1; i < 12; i++) { const [x, y] = pts[i], ln = A.arcPts(x, y + 11, 7.5, 9.5, 0, TAU, 9); g.seg(x, y, x, y + 2, { w: 0.7, over: 0 }); g.wash(ln, cols[i % cols.length], { a: 0.95, step: 99, mottle: false }); g.line(ln, { closed: true, w: 0.9, step: 99, dbl: false }); for (const k of [-0.5, 0.5]) g.line(A.quadPts([x, y + 2], [x + k * 9, y + 11], [x, y + 20], 4), { w: 0.4, a: 0.6, dbl: false, taper: false }); g.lit(x, y + 11, 16); }
+  } });
+  // The big wheel. Its frame is a sprite; the wheel itself turns live, its gondolas always hanging plumb.
+  const FERRIS = { hub: [0, -198], R: 148, n: 12 };
+  def('ferris', { w: 360, h: 380, b: 30, v: 1, rare: true, frames: 2,
+    draw(g, r) {
+      const [hx, hy] = FERRIS.hub;
+      for (const k of [-1, 1]) { g.line([[hx, hy], [k * 86, 26]], { w: 2.6, c: C.pine }); g.line([[hx, hy], [k * 62, 26]], { w: 1.6, c: C.pine }); for (let i = 1; i < 6; i++) { const u = i / 6; g.line([[k * 86 * u, hy + (26 - hy) * u], [k * 62 * (u + 0.1), hy + (26 - hy) * (u + 0.1)]], { w: 0.8, c: C.pine, dbl: false, taper: false }); } }
+      const booth = A.rectPts(-26, -34, 52, 60); g.paint(booth, C.red, { a: 0.8 }); g.poly(booth, { w: 1.3 }); g.paint([[-32, -34], [32, -34], [0, -56]], C.cream, { a: 0.5 }); g.poly([[-32, -34], [32, -34], [0, -56]], { w: 1.3 });
+      g.paintRect(-12, -22, 24, 20, C.prussian, { a: 0.7 }); g.rect(-12, -22, 24, 20, { w: 1 }); g.lit(0, -12, 18);
+    },
+    liveBack(g, x, y, sc, t, it) {
+      const c = g.c, [hx, hy] = FERRIS.hub, R = FERRIS.R, n = FERRIS.n, a0 = t * 0.22 + it.id, o = { dbl: false, taper: false, c: C.inkSoft };
+      g.seed(A.W.boil * 5 + it.id, it.id); c.save(); c.translate(x, y); c.scale(sc, sc);
+      g.ell(hx, hy, R, R, { w: 1.6, c: C.inkSoft }); g.ell(hx, hy, R - 16, R - 16, { w: 1, c: C.inkSoft, dbl: false }); g.ell(hx, hy, R * 0.42, R * 0.42, { w: 0.8, c: C.inkSoft, dbl: false });
+      for (let i = 0; i < n; i++) {
+        const a = a0 + i / n * TAU, ca = Math.cos(a), sa = Math.sin(a), b = a + TAU / n / 2;
+        g.line([[hx, hy], [hx + ca * R, hy + sa * R]], { w: 1, ...o });
+        g.line([[hx + ca * R, hy + sa * R], [hx + Math.cos(b) * (R - 16), hy + Math.sin(b) * (R - 16)], [hx + Math.cos(a + TAU / n) * R, hy + Math.sin(a + TAU / n) * R]], { w: 0.6, step: 99, ...o });
+      }
+      for (let i = 0; i < n; i++) {
+        const a = a0 + i / n * TAU, gx = hx + Math.cos(a) * R, gy = hy + Math.sin(a) * R, sw = Math.sin(t * 1.3 + i) * 1.5, col = [C.red, C.ochre, C.teal, C.rose][i % 4];
+        g.line([[gx, gy], [gx + sw, gy + 9]], { w: 0.8, ...o });
+        const cab = [[gx - 9 + sw, gy + 9], [gx + 9 + sw, gy + 9], [gx + 7 + sw, gy + 24], [gx - 7 + sw, gy + 24]];
+        g.wash(cab, col, { under: true, a: 0.85, spread: 0.4, mottle: false, step: 99 }); g.line(cab, { closed: true, w: 1, step: 99, dbl: false, c: C.ink });
+        g.wash([[gx - 11 + sw, gy + 9], [gx + 11 + sw, gy + 9], [gx + sw, gy + 3]], C.cream, { under: true, a: 0.4, spread: 0.3, mottle: false }); g.line([[gx - 11 + sw, gy + 9], [gx + sw, gy + 3], [gx + 11 + sw, gy + 9]], { w: 0.9, step: 99, dbl: false, taper: false });
+      }
+      g.paintEll(hx, hy, 9, 9, C.ochre, { a: 0.95, mottle: false }); g.ell(hx, hy, 9, 9, { w: 1.3 });
+      c.restore();
+    },
+    liveLights(x, y, sc, t, it) {
+      const [hx, hy] = FERRIS.hub, R = FERRIS.R, out = [[x + hx * sc, y + hy * sc, 14 * sc]];
+      for (let i = 0; i < 24; i++) { const a = t * 0.22 + it.id + i / 24 * TAU; out.push([x + (hx + Math.cos(a) * R) * sc, y + (hy + Math.sin(a) * R) * sc, (i % 2 ? 7 : 10) * sc]); }
+      return out;
+    } });
+  def('bigtop', { w: 320, h: 230, b: 30, v: 2, rare: true, frames: 2, draw(g, r, v) {
+    const col = v ? C.prussian : C.red;
+    const wall = [[-124, 26], [124, 26], [108, -66], [-108, -66]]; g.paint(wall, C.cream, { a: 0.35 });
+    for (let i = 0; i < 14; i += 2) { const a0 = i / 14, a1 = (i + 1) / 14; g.wash([[-124 + 248 * a0, 26], [-124 + 248 * a1, 26], [-108 + 216 * a1, -66], [-108 + 216 * a0, -66]], col, { a: 0.8, spread: 0.8, edge: false }); }
+    g.poly(wall, { w: 1.5 });
+    const roofL = [[-128, -66], [0, -66], [-44, -150]], roofR = [[0, -66], [128, -66], [44, -150]], mid = [[-44, -150], [44, -150], [0, -66]];
+    for (const [poly, apex] of [[roofL, [-44, -150]], [roofR, [44, -150]]]) { const x0 = poly[0][0], x1 = poly[1][0]; for (let i = 0; i < 8; i++) g.paint([[x0 + (x1 - x0) * i / 8, -66], [x0 + (x1 - x0) * (i + 1) / 8, -66], apex], i % 2 ? C.cream : col, { a: i % 2 ? 0.4 : 0.85, spread: 0.7, edge: false, step: 99 }); g.poly(poly, { w: 1.5 }); }
+    g.paint(mid, col, { a: 0.7, step: 99 }); g.line([[-44, -150], [44, -150]], { w: 1.4 });
+    for (const k of [-1, 1]) { g.seg(k * 44, -150, k * 44, -186, { w: 1.3 }); const fw = [[k * 44, -186], [k * 44 + 20, -181], [k * 44, -175]]; g.wash(fw, C.ochre, { a: 0.95, mottle: false }); g.line(fw, { closed: true, w: 0.9, step: 99, dbl: false }); }
+    const door = [[-20, 26], [-20, -30], ...A.arcPts(0, -30, 20, 16, Math.PI, TAU, 7), [20, 26]]; g.paint(door, C.ink, { a: 0.7, step: 99 }); g.line(door, { w: 1.3, step: 99 });
+    for (const k of [-1, 1]) { const cu = [[k * 20, -34], [k * 4, -40], [k * 14, -10], [k * 20, 26]]; g.paint(cu, C.ochre, { a: 0.9, step: 99 }); g.line(cu, { closed: true, w: 1, step: 99 }); }
+    signBand(g, 0, -64, 76, 16, v ? 'CIRCO' : 'CIRQUE', '#5a2a26', { size: 12, ls: 2.5, tc: '#ffe9a8', font: A.FONT.poster });
+    for (let i = 0; i < 9; i++) { g.dot(-112 + i * 28, -70, 1.5, { c: '#ffffff' }); g.lit(-112 + i * 28, -70, 12); }
+    g.lit(0, -8, 26);
+  } });
+
   // ───────────────────────── distance: the "near" backdrop layer ─────────────────────────
   def('skyline', { w: 440, h: 200, b: 30, v: 4, far: true, frames: 2, draw(g, r) {
     let x = -214;
@@ -697,6 +939,7 @@
     for (let i = 0; i < 5; i += 2) { const y0 = -20 - i * (H - 20) / 5, y1 = -20 - (i + 1) * (H - 20) / 5, k0 = 17 - 6 * i / 5, k1 = 17 - 6 * (i + 1) / 5; g.wash([[-k0, y0], [k0, y0], [k1, y1], [-k1, y1]], C.red, { a: 0.75, spread: 0.8, edge: false }); }
     g.poly(t, { w: 1.3 }); g.seg(-16, -H, 16, -H, { w: 1.5 });
     const lan = A.rectPts(-8, -H - 22, 16, 22); g.paint(lan, C.straw, { a: 0.8 }); g.poly(lan, { w: 1.1 }); g.seg(0, -H - 22, 0, -H, { w: 0.7, over: 0 });
+    g.lit(0, -H - 11, 24);
     const cap = A.arcPts(0, -H - 22, 11, 12, Math.PI, TAU, 8); g.paint(cap, C.prussian, { a: 0.75 }); g.line(cap, { w: 1.2 }); g.seg(0, -H - 34, 0, -H - 42, { w: 1 });
     door(g, 0, -20, 10, 20, C.prussian, true); windowAt(g, r, 0, -120, 7, 11, {});
   } });
@@ -764,7 +1007,7 @@
     g.wash([[-3, -30], [3, -30], [2.2, -292], [-2.2, -292]], C.pine, { a: 0.85, spread: 0.4 }); g.line([[-3, -30], [-2.2, -292]], { w: 1.4 }); g.line([[3, -30], [2.2, -292]], { w: 1.4 });
     for (const y of [-44, -200, -286]) g.seg(-6, y, 6, y, { w: 1.6 });
     for (const k of [-1, 1]) { g.line(A.quadPts([0, -262], [k * 24, -276], [k * 22, -250], 6), { w: 1.3 }); g.curl(k * 22, -254, 5, k, { w: 1, dbl: false }); }
-    const lan = [[-10, -294], [10, -294], [14, -326], [-14, -326]]; g.paint(lan, C.straw, { a: 0.85 }); g.poly(lan, { w: 1.5 }); g.seg(0, -294, 0, -326, { w: 0.8, over: 0 });
+    const lan = [[-10, -294], [10, -294], [14, -326], [-14, -326]]; g.paint(lan, C.straw, { a: 0.85 }); g.poly(lan, { w: 1.5 }); g.lit(0, -310, 20); g.seg(0, -294, 0, -326, { w: 0.8, over: 0 });
     const cap = [[-17, -326], [17, -326], [0, -344]]; g.paint(cap, C.pine, { a: 0.85 }); g.poly(cap, { w: 1.5 }); g.seg(0, -344, 0, -352, { w: 1.4 });
   } });
   def('fgBeach', { w: 150, h: 70, b: 10, v: 3, draw(g, r, v) {
@@ -779,22 +1022,30 @@
     back: {
       c: [['oak', 5, 150, 330], ['poplar', 6, 80, 240], ['pine', 3, 160, 300], ['cypress', 3, 60, 160], ['haystack', 4, 120, 260], ['farm', 2.2, 260, 420], ['windmill', 1.1, 260, 420], ['fence', 3, 190, 280], ['vines', 3, 235, 300], ['sunflowers', 3, 140, 240], ['cow', 2.4, 150, 300], ['scarecrow', 1, 160, 300], ['signpost', 1, 160, 300], ['well', 0.8, 160, 300], ['olive', 2, 140, 260]],
       t: [['houseFr', 11, 150, 196], ['cafe', 3.2, 262, 290], ['lamp', 2.2, 70, 110], ['kiosk', 1.4, 90, 130], ['fountain', 0.9, 190, 240], ['flowercart', 1.5, 160, 200], ['gelato', 1.1, 150, 190], ['bench', 1.5, 120, 160], ['plane', 2.6, 100, 150]],
+      j: [['plane', 7, 100, 190], ['oak', 2.5, 170, 300], ['bandstand', 1.3, 250, 300], ['carousel', 1.2, 240, 290], ['statue', 1.8, 110, 170], ['guignol', 1.1, 150, 190], ['flowerbed', 4.5, 200, 240], ['topiary', 3.4, 70, 120], ['rosearch', 1.7, 140, 190], ['bench', 2.6, 120, 170], ['lamp', 2, 80, 130], ['fountain', 1.1, 190, 240], ['gelato', 0.8, 150, 190], ['flowercart', 0.8, 160, 200], ['kiosk', 0.6, 90, 130]],
       r: [['houseIt', 6, 150, 200], ['cafe', 1.6, 262, 300], ['palm', 5, 110, 240], ['pine', 2, 180, 300], ['balustrade', 4, 218, 222], ['gelato', 1.4, 150, 220], ['lamp', 1.2, 90, 160], ['bench', 1, 130, 200], ['olive', 1, 140, 220]],
+      f: [['stall', 9, 150, 185], ['carousel', 1.1, 240, 290], ['striker', 1.3, 110, 150], ['lamp', 2.6, 80, 130], ['palm', 3, 110, 200], ['balustrade', 1.6, 218, 222], ['gelato', 1, 150, 200], ['cafe', 1.5, 262, 300], ['houseIt', 2.4, 150, 200], ['bench', 0.8, 130, 180]],
     },
     near: {
       c: [['treeline', 5, 300, 620], ['farAway', 2.5, 300, 700]],
       t: [['skyline', 7, 380, 440], ['church', 1.6, 200, 360]],
+      j: [['ironfence', 6, 259, 263], ['treeline', 2.6, 300, 460], ['pond', 1.8, 330, 440]],
       r: [['beachset', 6, 170, 320], ['cabana', 3.5, 90, 200], ['rowboat', 2, 190, 320], ['strongman', 0.8, 120, 240], ['hillVillage', 1.3, 300, 520], ['lighthouse', 0.5, 300, 600]],
+      f: [['ferris', 1.4, 400, 560], ['bigtop', 1.3, 340, 440], ['cabana', 2.6, 90, 200], ['rowboat', 1.6, 190, 320], ['beachset', 1, 170, 320], ['hillVillage', 0.9, 300, 520], ['lighthouse', 0.5, 300, 600]],
     },
     mid: {
       c: [['miniTown', 2, 260, 620], ['miniCypress', 4, 160, 460], ['miniTrees', 5, 160, 420], ['miniMill', 1.2, 200, 460]],
       t: [['miniTown', 4, 240, 520], ['miniTrees', 4, 180, 420], ['miniCypress', 2, 180, 420]],
+      j: [['miniTrees', 7, 130, 300], ['miniTown', 1.2, 240, 520], ['miniCypress', 1, 180, 420]],
       r: [['miniCypress', 1, 400, 800]],
+      f: [['miniCypress', 1, 400, 800]],
     },
     front: {
       c: [['fgGrass', 6, 260, 760], ['fgDaisies', 4, 260, 760], ['fgPost', 1.2, 400, 900]],
       t: [['fgPlanter', 3, 520, 1200], ['fgPost', 2, 420, 900], ['fgLamp', 1.6, 700, 1500]],
+      j: [['fgDaisies', 5, 300, 800], ['fgPlanter', 2, 500, 1000], ['fgGrass', 2, 300, 800], ['fgLamp', 0.7, 800, 1500]],
       r: [['fgBeach', 6, 300, 800], ['fgPlanter', 1, 500, 900]],
+      f: [['fgLamp', 2.4, 500, 1000], ['fgPlanter', 2, 500, 900], ['fgBeach', 3, 300, 800]],
     },
   };
 })();
