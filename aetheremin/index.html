@@ -19,7 +19,7 @@
                 </div>
                 <button id="start-btn">Touch to Begin</button>
                 <button id="kids-start-btn">&#127926; Kids Mode</button>
-                <div id="build-info">2026-07-15 23:46 UTC (b04f84d)</div>
+                <div id="build-info">2026-11-17 22:58 UTC (93b4e9d)</div>
             </div>
         </div>
 
@@ -33,7 +33,8 @@
                 <div class="touch-count" id="touch-count"></div>
                 <div class="note-display" id="note-display">--</div>
                 <div class="freq-display" id="freq-display">0 Hz</div>
-                <button id="air-btn" class="rec-btn" title="Air Mode — play with your hands via webcam (A)">&#128247; AIR</button>
+                <button id="songs-btn" class="rec-btn" title="Play Along — follow a melody (G)">&#127919;<span class="btn-label"> SONGS</span></button>
+                <button id="air-btn" class="rec-btn" title="Air Mode — play with your hands via webcam (A)">&#128247;<span class="btn-label"> AIR</span></button>
                 <button id="light-mode-btn" class="rec-btn" title="Toggle Light/Dark Mode">&#9788;</button>
             </div>
         </header>
@@ -59,6 +60,15 @@
             <div id="volume-meter">
                 <div id="volume-fill"></div>
                 <span class="meter-label">VOL</span>
+            </div>
+
+            <!-- Play Along HUD -->
+            <div id="game-hud">
+                <span id="game-title"></span>
+                <span id="game-score"></span>
+                <span id="game-combo"></span>
+                <button id="game-quit" title="Quit (Esc)">&#10005;</button>
+                <div id="game-progress"><div id="game-progress-fill"></div></div>
             </div>
 
             <!-- Pitch indicator (bottom) -->
@@ -164,6 +174,11 @@
                             <option value="11">B</option>
                         </select>
                     </div>
+                    <div class="effect-control snap-control" id="snap-control" style="margin-top: 6px;" title="How strongly notes pull toward the scale. 100% = hard snap, lower = glide between notes but land in tune">
+                        <label>Snap</label>
+                        <input type="range" id="snap-strength" min="0" max="100" value="100">
+                        <span class="val" id="snap-val">100%</span>
+                    </div>
                 </div>
 
                 <!-- Effects -->
@@ -254,6 +269,25 @@
                     </div>
                 </div>
 
+                <!-- Backing drone / pad -->
+                <div class="control-group backing-group">
+                    <label class="group-label">Backing</label>
+                    <div class="segmented" id="drone-mode-buttons" title="Drone/pad in the current key (D). Pad changes chord each bar at the metronome tempo">
+                        <button class="seg-btn active" data-mode="off">Off</button>
+                        <button class="seg-btn" data-mode="drone">Drone</button>
+                        <button class="seg-btn" data-mode="pad">Pad</button>
+                    </div>
+                    <div class="effect-control" style="margin-top: 8px;">
+                        <label>Volume</label>
+                        <input type="range" id="drone-volume" min="0" max="100" value="40">
+                        <span class="val" id="drone-vol-val">40%</span>
+                    </div>
+                    <div class="drone-chord-row">
+                        <span class="drone-chord-label">Chord</span>
+                        <span id="drone-chord">&mdash;</span>
+                    </div>
+                </div>
+
                 <!-- Loop Station -->
                 <div class="control-group loop-group">
                     <label class="group-label">Loop Station</label>
@@ -331,6 +365,8 @@
                 <button class="kids-btn kids-preset-btn" data-preset="cat-chorus">&#128568;<span>Cats!</span></button>
                 <button class="kids-btn kids-preset-btn" data-preset="whale-song">&#128011;<span>Whales</span></button>
                 <div class="kids-sep"></div>
+                <button class="kids-btn" id="kids-songs-btn">&#127919;<span>Songs</span></button>
+                <button class="kids-btn" id="kids-music-btn">&#127926;<span>Music</span></button>
                 <button class="kids-btn" id="kids-mic-btn">&#127908;<span>Sample</span></button>
                 <button class="kids-btn" id="kids-air-btn">&#128247;<span>Air</span></button>
             </div>
@@ -361,10 +397,51 @@
             </div>
         </div>
 
+        <!-- Play Along: song picker -->
+        <div id="game-picker" class="game-overlay">
+            <div class="game-card">
+                <h2 class="game-heading">&#127919; Play Along</h2>
+                <p class="game-sub">Notes fall toward the line. Keep your finger in the glowing column while each note crosses it.</p>
+                <div id="game-song-list"></div>
+                <div class="game-options">
+                    <div class="game-opt-row">
+                        <span class="game-opt-label">Speed</span>
+                        <div class="segmented" id="game-speed">
+                            <button class="seg-btn" data-speed="slow">Slow</button>
+                            <button class="seg-btn" data-speed="medium">Medium</button>
+                            <button class="seg-btn" data-speed="normal">Normal</button>
+                        </div>
+                    </div>
+                    <div class="game-opt-row">
+                        <button class="toggle-pill game-opt-toggle" data-opt="guide" title="A quiet tone plays the melody">Guide melody</button>
+                        <button class="toggle-pill game-opt-toggle" data-opt="assist" title="Gently snaps your pitch to the song's scale">Assist</button>
+                        <button class="toggle-pill game-opt-toggle" data-opt="chords" title="Backing chords follow the song">Chords</button>
+                    </div>
+                </div>
+                <button id="game-picker-close" class="rec-btn">Close</button>
+            </div>
+        </div>
+
+        <!-- Play Along: results -->
+        <div id="game-results" class="game-overlay">
+            <div class="game-card">
+                <div id="game-stars"></div>
+                <div id="game-final"></div>
+                <div id="game-message"></div>
+                <div id="game-newbest">New best!</div>
+                <div id="game-breakdown"></div>
+                <div class="game-actions">
+                    <button id="game-again" class="rec-btn">&#8635; Again</button>
+                    <button id="game-songs" class="rec-btn">&#127925; Songs</button>
+                    <button id="game-done" class="rec-btn">Done</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Toast notifications -->
         <div id="toast"></div>
     </div>
 
-    <script src="aetheremin.js?v=b04f84d"></script>
+    <script src="aetheremin.js?v=93b4e9d"></script>
 </body>
 </html>

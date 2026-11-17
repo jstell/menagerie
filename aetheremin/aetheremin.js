@@ -29,7 +29,7 @@
         spooky: {
             waveform: 'sine', delayMix: 40, reverbMix: 60, vibratoDepth: 25,
             vibratoRate: 4, distortion: 0, chorusMix: 20, portamento: 120,
-            scale: 'chromatic', theme: 'matrix'
+            scale: 'chromatic', snap: 60, theme: 'matrix'
         },
         ambient: {
             waveform: 'triangle', delayMix: 55, reverbMix: 70, vibratoDepth: 10,
@@ -59,7 +59,7 @@
         'whale-song': {
             waveform: 'whale', delayMix: 60, reverbMix: 90, vibratoDepth: 15,
             vibratoRate: 1.5, distortion: 0, chorusMix: 50, portamento: 180,
-            scale: 'major', theme: 'ocean'
+            scale: 'major', snap: 50, theme: 'ocean'
         }
     };
 
@@ -93,6 +93,7 @@
     let octaveHigh = 6;
     let currentScale = 'free';
     let currentKey = 0;
+    let snapStrength = 1; // 0..1, soft scale snap
     let currentTheme = 'cosmic';
     let portamentoTime = 50;
     let particleAmount = 60;
@@ -276,6 +277,7 @@
         analyser.connect(audioCtx.destination);
         analyser.connect(destNode);
 
+        initDrone();
         buildAnimalWaves();
         loadAnimalSamples(); // non-blocking, samples ready before user selects them
         updateDistortionCurve(0);
@@ -783,27 +785,46 @@
         return 440 * Math.pow(2, (midi - 69) / 12);
     }
 
-    function snapToScale(freq, scale, key) {
-        if (!scale || scale === 'free') return freq;
+    // Snap a pitch toward the scale. strength 1 = hard snap, 0 = free.
+    // A dead zone of width `strength` (as a fraction of the half-gap between
+    // neighbouring scale notes) pulls fully onto the note; beyond it pitch
+    // ramps linearly back to the midpoint, so gliding never jumps.
+    function snapToScale(freq, scale, key, strength = 1) {
+        if (!scale || scale === 'free' || strength <= 0) return freq;
         const intervals = SCALES[scale];
         if (!intervals) return freq;
         const n = 12 * Math.log2(freq / 440) + 69;
         const oct = Math.floor(n / 12);
-        let best = Infinity, bestMidi = Math.round(n);
+        let lower = -Infinity, upper = Infinity;
         for (let o = oct - 1; o <= oct + 1; o++) {
             for (const iv of intervals) {
                 const midi = o * 12 + ((iv + key) % 12);
-                const d = Math.abs(n - midi);
-                if (d < best) { best = d; bestMidi = midi; }
+                if (midi <= n && midi > lower) lower = midi;
+                if (midi > n && midi < upper) upper = midi;
             }
         }
-        return noteToFreq(bestMidi);
+        if (!isFinite(lower) || !isFinite(upper)) return noteToFreq(Math.round(n));
+        const half = (upper - lower) / 2;
+        const target = (n - lower) <= half ? lower : upper;
+        if (strength >= 1) return noteToFreq(target);
+        const d = n - target;
+        const t = Math.abs(d) / half;
+        const t2 = t < strength ? 0 : (t - strength) / (1 - strength);
+        return noteToFreq(target + Math.sign(d) * half * t2);
+    }
+
+    // Pitch range across the X axis, in (fractional) MIDI notes.
+    // Play Along narrows it to the song's notes.
+    function getRangeMidi() {
+        if (game) return { lo: game.lo, hi: game.hi };
+        return { lo: octaveLow * 12 + 12, hi: octaveHigh * 12 + 12 };
     }
 
     function mapXToFreq(xNorm) {
-        const lo = noteToFreq(octaveLow * 12 + 12);
-        const hi = noteToFreq(octaveHigh * 12 + 12);
-        return snapToScale(lo * Math.pow(hi / lo, xNorm), currentScale, currentKey);
+        const r = getRangeMidi();
+        const raw = noteToFreq(r.lo + (r.hi - r.lo) * xNorm);
+        if (game && game.assist) return snapToScale(raw, 'major', currentKey, kidsMode ? 0.85 : 0.7);
+        return snapToScale(raw, currentScale, currentKey, snapStrength);
     }
 
     function mapYToVol(yNorm) {
@@ -826,7 +847,7 @@
     }
 
     function onPointerDown(e) {
-        if (e.target.closest('#controls-panel') || e.target.closest('#header')) return;
+        if (e.target.closest('#controls-panel') || e.target.closest('#header') || e.target.closest('button')) return;
         e.preventDefault();
         if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
         const voice = createVoice(e.pointerId);
@@ -1094,8 +1115,9 @@
             i === 0 ? vizCtx.moveTo(0, y) : vizCtx.lineTo(i * sw, y);
         }
         const grad = vizCtx.createLinearGradient(0, 0, W, 0);
-        grad.addColorStop(0, `rgba(${c.primary.join(',')},0.6)`);
-        grad.addColorStop(1, `rgba(${c.secondary.join(',')},0.6)`);
+        const waveAlpha = game ? 0.15 : 0.6; // keep the hit line the only strong horizontal in Play Along
+        grad.addColorStop(0, `rgba(${c.primary.join(',')},${waveAlpha})`);
+        grad.addColorStop(1, `rgba(${c.secondary.join(',')},${waveAlpha})`);
         vizCtx.strokeStyle = grad;
         vizCtx.lineWidth = 2;
         vizCtx.shadowColor = `rgba(${c.primary.join(',')},0.4)`;
@@ -1134,6 +1156,8 @@
             vizCtx.stroke();
             vizCtx.setLineDash([]);
         }
+
+        if (game) drawGame(vizCtx, W, H);
     }
 
     function drawParticles() {
@@ -1161,6 +1185,7 @@
             root.style.setProperty('--theme-particle', `rgb(${p.join(',')})`);
         }
         if (airActive) updateAirTracking();
+        if (game) { updateGame(); updateGameHud(); }
         drawVisualization();
         drawParticles();
         for (const v of voices.values()) {
@@ -1339,6 +1364,8 @@
             const isAccent = metronomeBeat === 0;
             // Schedule audio click via AudioContext clock for accurate timing
             scheduleMetronomeClick(metronomeNextBeatTime, isAccent);
+            // Pad chord changes follow the metronome's downbeat
+            if (isAccent && droneMode === 'pad' && !droneSuspended()) droneBar(metronomeNextBeatTime);
             // Schedule visual update with matching delay
             const delayMs = Math.max(0, (metronomeNextBeatTime - audioCtx.currentTime) * 1000);
             const beatIdx = metronomeBeat;
@@ -1658,6 +1685,627 @@
     }
 
     // =======================================================
+    // BACKING DRONE / PAD
+    // =======================================================
+    // Routed straight to the speakers (like the metronome), not into the
+    // recorder: loop tracks would otherwise bake in a drone that doubles up
+    // and drifts against the live one on playback.
+
+    const CHORD_QUALITIES = { maj: [0, 4, 7], min: [0, 3, 7], dom7: [0, 4, 7, 10], aug: [0, 4, 8], fifth: [0, 7] };
+    const CHORD_SUFFIX = { maj: '', min: 'm', dom7: '7', aug: '+', fifth: '5' };
+    // [degree in semitones above key, quality], one chord per bar
+    const PROGRESSIONS = {
+        major:        [[0, 'maj'], [7, 'maj'], [9, 'min'], [5, 'maj']],   // I–V–vi–IV
+        minor:        [[0, 'min'], [8, 'maj'], [3, 'maj'], [10, 'maj']],  // i–VI–III–VII
+        blues:        [[0, 'dom7'], [5, 'dom7'], [0, 'dom7'], [7, 'dom7']],
+        arabic:       [[0, 'maj'], [1, 'maj'], [0, 'maj'], [5, 'min']],
+        'whole-tone': [[0, 'aug'], [2, 'aug']]
+    };
+
+    let droneMode = 'off'; // 'off' | 'drone' | 'pad'
+    let droneBus = null, droneOut = null, droneLfoGain = null;
+    let droneSegments = [];
+    let droneSchedulerInterval = null;
+    let droneNextBarTime = 0;
+    let droneBarIdx = 0;
+    let droneLabelTimeouts = [];
+
+    function initDrone() {
+        droneBus = audioCtx.createGain();
+        droneOut = audioCtx.createGain();
+        droneOut.gain.value = 0.4;
+        droneBus.connect(droneOut);
+        const verb = audioCtx.createConvolver();
+        verb.buffer = createReverbIR(4);
+        const wet = audioCtx.createGain();
+        wet.gain.value = 0.5;
+        droneOut.connect(audioCtx.destination);
+        droneOut.connect(verb);
+        verb.connect(wet);
+        wet.connect(audioCtx.destination);
+        // Slow shared LFO sweeping every chord's filter cutoff
+        const lfo = audioCtx.createOscillator();
+        lfo.frequency.value = 0.07;
+        droneLfoGain = audioCtx.createGain();
+        droneLfoGain.gain.value = 220;
+        lfo.connect(droneLfoGain);
+        lfo.start();
+    }
+
+    function chordMidis(degree, quality) {
+        let root = 48 + ((currentKey + degree) % 12);
+        if (root > 54) root -= 12;
+        return [root - 12, ...CHORD_QUALITIES[quality].map(iv => root + iv)];
+    }
+
+    function chordName(degree, quality) {
+        return NOTE_NAMES[(currentKey + degree) % 12] + CHORD_SUFFIX[quality];
+    }
+
+    // Start a sustained chord at time t0, fading in over `fade` seconds.
+    function startDroneChord(midis, t0, fade, cutoff) {
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0, t0);
+        gain.gain.linearRampToValueAtTime(0.13 / Math.sqrt(midis.length), t0 + fade);
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = cutoff;
+        filter.Q.value = 0.7;
+        droneLfoGain.connect(filter.frequency);
+        filter.connect(gain);
+        gain.connect(droneBus);
+        const oscs = [];
+        for (const m of midis) {
+            for (const detune of [-7, 7]) {
+                const o = audioCtx.createOscillator();
+                o.type = 'sawtooth';
+                o.frequency.value = noteToFreq(m);
+                o.detune.value = detune;
+                o.connect(filter);
+                o.start(t0);
+                oscs.push(o);
+            }
+        }
+        const seg = { oscs, gain, filter, end: Infinity };
+        droneSegments.push(seg);
+        return seg;
+    }
+
+    // Fade a chord out starting at `when` (clamped to now) and free its nodes.
+    function endDroneChord(seg, when, fade) {
+        const now = audioCtx.currentTime;
+        when = Math.max(when, now);
+        if (when >= seg.end) return;
+        seg.end = when;
+        const gp = seg.gain.gain;
+        if (when <= now + 0.02) {
+            const v = gp.value;
+            gp.cancelScheduledValues(now);
+            gp.setValueAtTime(v, now);
+        }
+        gp.setTargetAtTime(0, when, fade / 3);
+        const stopAt = when + fade * 2;
+        for (const o of seg.oscs) { try { o.stop(stopAt); } catch (_) {} }
+        setTimeout(() => {
+            for (const o of seg.oscs) { try { o.disconnect(); } catch (_) {} }
+            try { droneLfoGain.disconnect(seg.filter.frequency); } catch (_) {}
+            try { seg.filter.disconnect(); seg.gain.disconnect(); } catch (_) {}
+            droneSegments = droneSegments.filter(s => s !== seg);
+        }, (stopAt - now) * 1000 + 250);
+    }
+
+    // Crossfade from whatever is sounding into a new chord at time t.
+    function playDroneChordAt(t, degree, quality, fade, cutoff) {
+        for (const seg of droneSegments) endDroneChord(seg, t, fade);
+        startDroneChord(chordMidis(degree, quality), t, fade, cutoff);
+        const name = chordName(degree, quality);
+        const delay = Math.max(0, (t - audioCtx.currentTime) * 1000);
+        droneLabelTimeouts.push(setTimeout(() => { $('drone-chord').textContent = name; }, delay));
+    }
+
+    function stopDroneSound(fade = 0.6) {
+        for (const seg of droneSegments) endDroneChord(seg, audioCtx.currentTime, fade);
+        droneLabelTimeouts.forEach(clearTimeout);
+        droneLabelTimeouts = [];
+        $('drone-chord').textContent = '—';
+    }
+
+    function droneSuspended() {
+        return !!(game && game.chords);
+    }
+
+    function droneBarSeconds() {
+        return METRO_BEATS_PER_MEASURE * 60 / metronomeBpm;
+    }
+
+    // One pad bar starting at time t. Called by the pad's own clock, or by
+    // the metronome on its downbeat so chord changes land on beat 1.
+    function droneBar(t) {
+        const prog = PROGRESSIONS[currentScale] || PROGRESSIONS.major;
+        const [deg, q] = prog[droneBarIdx % prog.length];
+        droneBarIdx++;
+        const fade = Math.min(0.9, droneBarSeconds() * 0.35);
+        playDroneChordAt(t, deg, q, fade, 950);
+        droneNextBarTime = t + droneBarSeconds();
+    }
+
+    function droneScheduler() {
+        if (droneMode !== 'pad' || isMetronomeOn || droneSuspended()) return;
+        const now = audioCtx.currentTime;
+        if (droneNextBarTime < now) droneNextBarTime = now + 0.03;
+        while (droneNextBarTime < now + 0.15) droneBar(droneNextBarTime);
+    }
+
+    function startStaticDrone() {
+        if (droneMode !== 'drone' || droneSuspended()) return;
+        playDroneChordAt(audioCtx.currentTime + 0.02, 0, 'fifth', 0.8, 650);
+    }
+
+    function setDroneMode(mode) {
+        droneMode = mode;
+        stopDroneSound(0.6);
+        clearInterval(droneSchedulerInterval);
+        droneSchedulerInterval = null;
+        if (mode === 'drone') {
+            startStaticDrone();
+        } else if (mode === 'pad') {
+            droneBarIdx = 0;
+            droneNextBarTime = audioCtx.currentTime + 0.03;
+            droneSchedulerInterval = setInterval(droneScheduler, 50);
+            if (isMetronomeOn && !droneSuspended()) droneBar(audioCtx.currentTime + 0.03);
+            else droneScheduler();
+        }
+        document.querySelectorAll('#drone-mode-buttons .seg-btn').forEach(b =>
+            b.classList.toggle('active', b.dataset.mode === mode));
+        const kb = $('kids-music-btn');
+        if (kb) kb.classList.toggle('active', mode !== 'off');
+    }
+
+    function cycleDroneMode() {
+        const order = ['off', 'drone', 'pad'];
+        setDroneMode(order[(order.indexOf(droneMode) + 1) % order.length]);
+        showToast('Backing: ' + droneMode.charAt(0).toUpperCase() + droneMode.slice(1));
+    }
+
+    // Key changes retune the static drone at once; the pad picks them up next bar.
+    function onKeyOrScaleChangeForDrone() {
+        if (droneMode === 'drone') startStaticDrone();
+    }
+
+    // =======================================================
+    // PLAY ALONG (trace-the-melody game)
+    // =======================================================
+    // Melodies are written in C (C4 = MIDI 60); "NOTE:beats", default 1 beat,
+    // "R:beats" is a rest. Chords are "beat:Name", both transposed to the key.
+
+    const SONG_CHORDS = { C: [0, 'maj'], F: [5, 'maj'], G: [7, 'maj'], G7: [7, 'dom7'], Am: [9, 'min'], Dm: [2, 'min'] };
+    const SONGS = [
+        {
+            id: 'twinkle', title: 'Twinkle Twinkle', icon: '⭐', bpm: 100,
+            melody: 'C4 C4 G4 G4 A4 A4 G4:2 | F4 F4 E4 E4 D4 D4 C4:2 | G4 G4 F4 F4 E4 E4 D4:2 | ' +
+                    'G4 G4 F4 F4 E4 E4 D4:2 | C4 C4 G4 G4 A4 A4 G4:2 | F4 F4 E4 E4 D4 D4 C4:2',
+            chords: '0:C 4:F 6:C 8:F 10:C 12:G 14:C 16:C 18:F 20:C 22:G 24:C 26:F 28:C 30:G ' +
+                    '32:C 36:F 38:C 40:F 42:C 44:G 46:C'
+        },
+        {
+            id: 'mary', title: 'Mary Had a Little Lamb', icon: '🐑', bpm: 108,
+            melody: 'E4 D4 C4 D4 | E4 E4 E4:2 | D4 D4 D4:2 | E4 G4 G4:2 | E4 D4 C4 D4 | E4 E4 E4 E4 | D4 D4 E4 D4 | C4:4',
+            chords: '0:C 8:G 12:C 24:G 28:C'
+        },
+        {
+            id: 'frere', title: 'Frère Jacques', icon: '🔔', bpm: 100,
+            melody: 'C4 D4 E4 C4 | C4 D4 E4 C4 | E4 F4 G4:2 | E4 F4 G4:2 | ' +
+                    'G4:0.5 A4:0.5 G4:0.5 F4:0.5 E4 C4 | G4:0.5 A4:0.5 G4:0.5 F4:0.5 E4 C4 | C4 G3 C4:2 | C4 G3 C4:2',
+            chords: '0:C 25:G 26:C 29:G 30:C'
+        },
+        {
+            id: 'ode', title: 'Ode to Joy', icon: '🎉', bpm: 104,
+            melody: 'E4 E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | E4:1.5 D4:0.5 D4:2 | ' +
+                    'E4 E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | D4:1.5 C4:0.5 C4:2',
+            chords: '0:C 4:G 8:C 12:C 14:G 16:C 20:G 24:C 28:G 30:C'
+        }
+    ];
+
+    // Boomwhacker-style colour per pitch class (C red … B magenta)
+    const PITCH_CLASS_COLORS = [
+        '255,64,64', '255,110,60', '255,150,30', '255,190,30', '255,230,60', '140,220,70',
+        '60,220,120', '0,210,190', '0,170,255', '80,110,255', '160,80,255', '240,70,190'
+    ];
+    const GAME_FALL_SEC = 3.0;  // time for a note bar to fall from the top to the hit line
+    const GAME_LINE = 0.62;     // hit line, as a fraction of play-area height
+    const GAME_SPEEDS = { slow: 0.7, medium: 0.85, normal: 1.0 };
+    const GRADES = [
+        { min: 0.8, key: 'perfect', text: 'Perfect!', color: '255,230,80' },
+        { min: 0.5, key: 'great', text: 'Great!', color: '80,255,170' },
+        { min: 0.2, key: 'ok', text: 'OK', color: '120,190,255' },
+        { min: -1, key: 'miss', text: 'Miss', color: '255,110,130' }
+    ];
+
+    let game = null; // active Play Along round
+    let gameLastSong = null;
+    const gameOpts = { speed: 'medium', guide: true, assist: true, chords: true };
+
+    function parseMelody(str) {
+        const out = [];
+        let beat = 0;
+        for (const tok of str.split(/\s+/)) {
+            const m = tok.match(/^(R|[A-G]#?)(-?\d)?(?::([\d.]+))?$/);
+            if (!m) continue;
+            const dur = m[3] ? parseFloat(m[3]) : 1;
+            if (m[1] !== 'R') {
+                out.push({ midi: NOTE_NAMES.indexOf(m[1]) + (parseInt(m[2]) + 1) * 12, beat, dur });
+            }
+            beat += dur;
+        }
+        return out;
+    }
+
+    function parseChords(str) {
+        return str.split(/\s+/).filter(Boolean).map(tok => {
+            const [beat, name] = tok.split(':');
+            return { beat: parseFloat(beat), chord: SONG_CHORDS[name] };
+        });
+    }
+
+    function gameBest(id) {
+        return parseInt(localStorage.getItem('aetheremin-best-' + id) || '0', 10);
+    }
+
+    function starsFor(pct) {
+        return pct >= 88 ? 3 : pct >= 70 ? 2 : pct >= 45 ? 1 : 0;
+    }
+
+    function starString(n) {
+        return '★'.repeat(n) + '☆'.repeat(3 - n);
+    }
+
+    function startGame(songId) {
+        const song = SONGS.find(s => s.id === songId);
+        if (!song) return;
+        if (game) teardownGame();
+        hideGameOverlays();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const opts = kidsMode
+            ? { speed: 'slow', guide: true, assist: true, chords: true }
+            : { ...gameOpts };
+        const shift = currentKey <= 6 ? currentKey : currentKey - 12;
+        const spb = 60 / (song.bpm * GAME_SPEEDS[opts.speed]);
+        const t0 = audioCtx.currentTime + GAME_FALL_SEC + 0.4;
+
+        const notes = parseMelody(song.melody).map(n => ({
+            midi: n.midi + shift,
+            t0: t0 + n.beat * spb,
+            t1: t0 + (n.beat + n.dur) * spb,
+            on: 0, judged: false, grade: null, hitNow: false
+        }));
+        const midis = notes.map(n => n.midi);
+
+        game = {
+            song, opts, notes, spb, t0,
+            end: notes[notes.length - 1].t1,
+            lo: Math.min(...midis) - 1.5,
+            hi: Math.max(...midis) + 1.5,
+            lanes: [...new Set(midis)],
+            assist: opts.assist,
+            chords: opts.chords,
+            tolerance: kidsMode ? 100 : 50,
+            weighted: 0, judgedDur: 0, totalDur: 0,
+            counts: { perfect: 0, great: 0, ok: 0, miss: 0 },
+            combo: 0, maxCombo: 0,
+            popups: [], guide: null,
+            lastTime: audioCtx.currentTime, finished: false
+        };
+        game.totalDur = notes.reduce((a, n) => a + (n.t1 - n.t0), 0);
+        gameLastSong = song.id;
+
+        if (opts.guide) scheduleGameGuide();
+        if (opts.chords) scheduleGameChords(shift);
+
+        document.body.classList.add('game-active');
+        if ($('songs-btn')) $('songs-btn').classList.add('active');
+        $('game-title').textContent = song.icon + ' ' + song.title;
+        updateGameHud();
+    }
+
+    function scheduleGameGuide() {
+        const osc = audioCtx.createOscillator();
+        osc.type = 'sine';
+        const g = audioCtx.createGain();
+        g.gain.value = 0;
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        for (const n of game.notes) {
+            osc.frequency.setValueAtTime(noteToFreq(n.midi), n.t0);
+            g.gain.setTargetAtTime(0.08, n.t0, 0.015);
+            g.gain.setTargetAtTime(0, Math.max(n.t0 + 0.05, n.t1 - 0.06), 0.015);
+        }
+        osc.start();
+        osc.stop(game.end + 0.5);
+        game.guide = { osc, g };
+    }
+
+    // The pad plays the song's own harmony, scheduled on the audio clock.
+    function scheduleGameChords() {
+        stopDroneSound(0.4);
+        const evs = parseChords(game.song.chords);
+        const fade = Math.min(0.5, game.spb * 0.5);
+        evs.forEach((ev, i) => {
+            const t = game.t0 + ev.beat * game.spb;
+            const tEnd = i + 1 < evs.length ? game.t0 + evs[i + 1].beat * game.spb : game.end + 0.3;
+            const seg = startDroneChord(chordMidis(ev.chord[0], ev.chord[1]), t, fade, 1000);
+            endDroneChord(seg, tEnd, i + 1 < evs.length ? fade : 1.2);
+            const name = chordName(ev.chord[0], ev.chord[1]);
+            droneLabelTimeouts.push(setTimeout(() => { $('drone-chord').textContent = name; },
+                Math.max(0, (t - audioCtx.currentTime) * 1000)));
+        });
+    }
+
+    function gameOnPitch(midi) {
+        const target = noteToFreq(midi);
+        for (const v of voices.values()) {
+            if (v.vol < 0.03) continue;
+            if (Math.abs(1200 * Math.log2(v.freq / target)) <= game.tolerance) return true;
+        }
+        return false;
+    }
+
+    function gameXOf(midi, W) {
+        return (midi - game.lo) / (game.hi - game.lo) * W;
+    }
+
+    function judgeGameNote(n) {
+        n.judged = true;
+        const dur = n.t1 - n.t0;
+        const acc = Math.min(1, n.on / Math.max(0.1, dur - 0.12));
+        const grade = GRADES.find(g => acc >= g.min);
+        n.grade = grade.key;
+        game.counts[grade.key]++;
+        game.weighted += acc * dur;
+        game.judgedDur += dur;
+        if (grade.key === 'perfect' || grade.key === 'great') {
+            game.combo++;
+            game.maxCombo = Math.max(game.maxCombo, game.combo);
+        } else {
+            game.combo = 0;
+        }
+        const W = vizCanvas.width, H = vizCanvas.height;
+        const x = gameXOf(n.midi, W);
+        game.popups.push({ x, text: grade.text, color: grade.color, t: audioCtx.currentTime });
+        if (grade.key === 'perfect') spawnParticles(x, H * GAME_LINE, 24);
+        else if (grade.key === 'great') spawnParticles(x, H * GAME_LINE, 12);
+        updateGameHud();
+    }
+
+    function updateGame() {
+        if (!game || game.finished) return;
+        const now = audioCtx.currentTime;
+        const dt = Math.min(0.1, Math.max(0, now - game.lastTime));
+        game.lastTime = now;
+        for (const n of game.notes) {
+            if (n.judged) continue;
+            if (now < n.t0) break;
+            if (now < n.t1) {
+                n.hitNow = gameOnPitch(n.midi);
+                if (n.hitNow) n.on += dt;
+            } else {
+                n.hitNow = false;
+                judgeGameNote(n);
+            }
+        }
+        if (now > game.end + 0.8) finishGame();
+    }
+
+    function updateGameHud() {
+        if (!game) return;
+        const pct = game.judgedDur > 0 ? Math.round(100 * game.weighted / game.judgedDur) : 0;
+        $('game-score').textContent = game.judgedDur > 0 ? pct + '%' : '';
+        $('game-combo').textContent = game.combo >= 2 ? 'combo ×' + game.combo : '';
+        const now = audioCtx.currentTime;
+        const prog = Math.max(0, Math.min(1, (now - game.t0) / (game.end - game.t0)));
+        $('game-progress-fill').style.width = (prog * 100) + '%';
+    }
+
+    function finishGame() {
+        const g = game;
+        g.finished = true;
+        const pct = Math.round(100 * g.weighted / g.totalDur);
+        const stars = starsFor(pct);
+        const prevBest = gameBest(g.song.id);
+        if (pct > prevBest) localStorage.setItem('aetheremin-best-' + g.song.id, String(pct));
+        teardownGame();
+
+        const msgs = ['Keep practicing!', 'Nice start!', 'Great job!', 'Amazing!'];
+        $('game-stars').textContent = starString(stars);
+        $('game-final').textContent = pct + '%';
+        $('game-message').textContent = msgs[stars];
+        $('game-breakdown').textContent =
+            `${g.counts.perfect} perfect · ${g.counts.great} great · ${g.counts.ok} ok · ` +
+            `${g.counts.miss} miss · best combo ${g.maxCombo}`;
+        $('game-newbest').classList.toggle('show', pct > prevBest && prevBest > 0);
+        $('game-results').classList.add('open');
+        if (stars >= 2) {
+            const W = vizCanvas.width, H = vizCanvas.height;
+            for (let i = 0; i < 6; i++) spawnParticles(W * (0.15 + 0.14 * i), H * 0.5, 20);
+        }
+    }
+
+    // Stop a round (finished or quit) and restore normal playing.
+    function teardownGame() {
+        if (!game) return;
+        const now = audioCtx.currentTime;
+        if (game.guide) {
+            const gp = game.guide.g.gain;
+            gp.cancelScheduledValues(now);
+            gp.setTargetAtTime(0, now, 0.02);
+            try { game.guide.osc.stop(now + 0.15); } catch (_) {}
+        }
+        const hadChords = game.chords;
+        if (hadChords) stopDroneSound(0.6);
+        game = null;
+        document.body.classList.remove('game-active');
+        if ($('songs-btn')) $('songs-btn').classList.remove('active');
+        if (hadChords && droneMode !== 'off') setDroneMode(droneMode);
+        buildFreqGuides();
+    }
+
+    function quitGame() {
+        teardownGame();
+    }
+
+    function drawGame(ctx, W, H) {
+        const now = audioCtx.currentTime;
+        const lineY = H * GAME_LINE;
+        const pps = lineY / GAME_FALL_SEC;
+        const laneW = W / (game.hi - game.lo);
+        const barW = Math.max(14, Math.min(laneW * 0.72, 90));
+        const light = document.body.classList.contains('light-mode');
+        const c = THEME_COLORS[currentTheme];
+        const current = game.notes.find(n => now >= n.t0 && now < n.t1);
+
+        // Lanes + note-name labels
+        ctx.textAlign = 'center';
+        ctx.font = `bold ${kidsMode ? 18 : 13}px system-ui, sans-serif`;
+        for (const m of game.lanes) {
+            const col = PITCH_CLASS_COLORS[((m % 12) + 12) % 12];
+            const x = gameXOf(m, W);
+            ctx.fillStyle = `rgba(${col},${light ? 0.1 : 0.06})`;
+            ctx.fillRect(x - barW / 2, 0, barW, H);
+            ctx.fillStyle = `rgba(${col},0.9)`;
+            ctx.fillText(NOTE_NAMES[((m % 12) + 12) % 12], x, H - 34);
+        }
+
+        // Full-height glow on the column you should be in right now
+        if (current) {
+            const col = PITCH_CLASS_COLORS[((current.midi % 12) + 12) % 12];
+            const x = gameXOf(current.midi, W);
+            const a = current.hitNow ? 0.38 : 0.2;
+            const grad = ctx.createLinearGradient(x - barW, 0, x + barW, 0);
+            grad.addColorStop(0, `rgba(${col},0)`);
+            grad.addColorStop(0.5, `rgba(${col},${a})`);
+            grad.addColorStop(1, `rgba(${col},0)`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(x - barW, 0, barW * 2, H);
+        }
+
+        // Hit line
+        ctx.save();
+        ctx.strokeStyle = `rgba(${c.secondary.join(',')},0.8)`;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = `rgba(${c.secondary.join(',')},0.8)`;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(0, lineY);
+        ctx.lineTo(W, lineY);
+        ctx.stroke();
+        ctx.restore();
+
+        // Falling note bars: bottom edge reaches the line at the note's start
+        for (const n of game.notes) {
+            const yBottom = lineY - (n.t0 - now) * pps;
+            const yTop = lineY - (n.t1 - now) * pps;
+            if (yBottom < 0) break;
+            if (yTop > H) continue;
+            const col = PITCH_CLASS_COLORS[((n.midi % 12) + 12) % 12];
+            const x = gameXOf(n.midi, W) - barW / 2;
+            const h = Math.max(4, yBottom - yTop - 3);
+            let alpha = 0.85;
+            if (n.judged) alpha = n.grade === 'miss' ? 0.15 : 0.3;
+            ctx.save();
+            ctx.fillStyle = `rgba(${col},${alpha})`;
+            if (n.hitNow) {
+                ctx.shadowColor = `rgba(${col},1)`;
+                ctx.shadowBlur = 24;
+            }
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(x, yTop + 1.5, barW, h, Math.min(10, barW / 3));
+            else ctx.rect(x, yTop + 1.5, barW, h);
+            ctx.fill();
+            if (n.hitNow) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // Grade popups
+        ctx.font = `bold ${kidsMode ? 26 : 18}px system-ui, sans-serif`;
+        game.popups = game.popups.filter(p => now - p.t < 0.9);
+        for (const p of game.popups) {
+            const age = now - p.t;
+            ctx.fillStyle = `rgba(${p.color},${1 - age / 0.9})`;
+            ctx.fillText(p.text, p.x, lineY - 24 - age * 45);
+        }
+
+        // Lead-in countdown
+        if (now < game.t0) {
+            const secs = Math.ceil(game.t0 - now);
+            ctx.font = `bold ${kidsMode ? 72 : 56}px system-ui, sans-serif`;
+            ctx.fillStyle = light ? 'rgba(40,40,80,0.5)' : 'rgba(255,255,255,0.5)';
+            ctx.fillText(secs <= 3 ? String(secs) : '', W / 2, H * 0.3);
+        }
+    }
+
+    function renderSongList() {
+        const list = $('game-song-list');
+        list.innerHTML = '';
+        for (const s of SONGS) {
+            const best = gameBest(s.id);
+            const btn = document.createElement('button');
+            btn.className = 'game-song-btn';
+            btn.dataset.song = s.id;
+            btn.innerHTML = `<span class="game-song-icon">${s.icon}</span>` +
+                `<span class="game-song-name">${s.title}</span>` +
+                `<span class="game-song-best">${best ? starString(starsFor(best)) + ' ' + best + '%' : 'New'}</span>`;
+            btn.addEventListener('click', () => startGame(s.id));
+            list.appendChild(btn);
+        }
+    }
+
+    function openGamePicker() {
+        if (game) quitGame();
+        $('game-results').classList.remove('open');
+        renderSongList();
+        $('game-picker').classList.add('open');
+    }
+
+    function hideGameOverlays() {
+        $('game-picker').classList.remove('open');
+        $('game-results').classList.remove('open');
+    }
+
+    function gameOverlayOpen() {
+        return $('game-picker').classList.contains('open') || $('game-results').classList.contains('open');
+    }
+
+    function syncGameOptionUI() {
+        document.querySelectorAll('#game-speed .seg-btn').forEach(b =>
+            b.classList.toggle('active', b.dataset.speed === gameOpts.speed));
+        document.querySelectorAll('.game-opt-toggle').forEach(b => {
+            const on = gameOpts[b.dataset.opt];
+            b.classList.toggle('active', on);
+        });
+    }
+
+    function bindGameControls() {
+        const songsBtn = kidsMode ? $('kids-songs-btn') : $('songs-btn');
+        songsBtn.addEventListener('click', openGamePicker);
+        $('game-quit').addEventListener('click', quitGame);
+        $('game-picker-close').addEventListener('click', hideGameOverlays);
+        $('game-again').addEventListener('click', () => startGame(gameLastSong));
+        $('game-songs').addEventListener('click', openGamePicker);
+        $('game-done').addEventListener('click', hideGameOverlays);
+        document.querySelectorAll('.game-overlay').forEach(ov =>
+            ov.addEventListener('click', e => { if (e.target === ov) hideGameOverlays(); }));
+        document.querySelectorAll('#game-speed .seg-btn').forEach(b =>
+            b.addEventListener('click', () => { gameOpts.speed = b.dataset.speed; syncGameOptionUI(); }));
+        document.querySelectorAll('.game-opt-toggle').forEach(b =>
+            b.addEventListener('click', () => { gameOpts[b.dataset.opt] = !gameOpts[b.dataset.opt]; syncGameOptionUI(); }));
+        syncGameOptionUI();
+    }
+
+    // =======================================================
     // CONTROLS BINDING
     // =======================================================
 
@@ -1691,8 +2339,15 @@
         });
 
         // Scale & key
-        $('scale-select').addEventListener('change', e => { currentScale = e.target.value; buildFreqGuides(); });
-        $('key-select').addEventListener('change', e => { currentKey = parseInt(e.target.value); buildFreqGuides(); });
+        $('scale-select').addEventListener('change', e => { currentScale = e.target.value; buildFreqGuides(); updateSnapControl(); });
+        $('key-select').addEventListener('change', e => {
+            currentKey = parseInt(e.target.value);
+            buildFreqGuides();
+            onKeyOrScaleChangeForDrone();
+        });
+
+        $('snap-strength').addEventListener('input', e => setSnapStrength(parseInt(e.target.value)));
+        updateSnapControl();
 
         // Grid toggle
         $('grid-toggle').addEventListener('click', () => {
@@ -1794,6 +2449,17 @@
         });
         $('mic-preview-btn').addEventListener('click', playMicPreview);
 
+        // Backing drone / pad
+        document.querySelectorAll('#drone-mode-buttons .seg-btn').forEach(b =>
+            b.addEventListener('click', () => setDroneMode(b.dataset.mode)));
+        $('drone-volume').addEventListener('input', e => {
+            droneOut.gain.setTargetAtTime(e.target.value / 100, audioCtx.currentTime, 0.05);
+            $('drone-vol-val').textContent = e.target.value + '%';
+        });
+
+        // Play Along
+        bindGameControls();
+
         // Air mode
         bindAirControls();
 
@@ -1865,6 +2531,10 @@
             btn.addEventListener('click', () => setKidsTheme(btn.dataset.ktheme));
         });
 
+        // Backing music + Play Along
+        $('kids-music-btn').addEventListener('click', () => setDroneMode(droneMode === 'off' ? 'pad' : 'off'));
+        bindGameControls();
+
         // Air mode
         bindAirControls();
 
@@ -1918,6 +2588,17 @@
         localStorage.setItem('aetheremin-light-mode', enabled ? '1' : '0');
     }
 
+    function setSnapStrength(pct) {
+        snapStrength = pct / 100;
+        $('snap-strength').value = pct;
+        $('snap-val').textContent = pct + '%';
+        updateSnapControl();
+    }
+
+    function updateSnapControl() {
+        $('snap-control').classList.toggle('disabled', currentScale === 'free');
+    }
+
     function applyPreset(name) {
         const p = PRESETS[name];
         if (!p) return;
@@ -1954,6 +2635,7 @@
 
         $('scale-select').value = p.scale;
         currentScale = p.scale;
+        setSnapStrength(p.snap ?? 100);
 
         if (!kidsMode) setTheme(p.theme);
         if (kidsMode) {
@@ -1996,6 +2678,19 @@
             if (e.key === 'm' || e.key === 'M') { if (micRecording) stopMicSample(); else startMicSample(); }
             // A: air mode
             if (e.key === 'a' || e.key === 'A') toggleAirMode();
+            // D: cycle backing (off / drone / pad)
+            if (e.key === 'd' || e.key === 'D') cycleDroneMode();
+            // G: Play Along — open song picker, or quit the current round
+            if (e.key === 'g' || e.key === 'G') {
+                if (game) quitGame();
+                else if (gameOverlayOpen()) hideGameOverlays();
+                else openGamePicker();
+            }
+            // Esc: quit round / close Play Along dialogs
+            if (e.key === 'Escape') {
+                if (game) quitGame();
+                hideGameOverlays();
+            }
         });
     }
 

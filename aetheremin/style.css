@@ -1647,3 +1647,401 @@ body.air-mode #air-cam-toggle {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
+
+/* ============================
+   Soft Snap
+   ============================ */
+
+.snap-control.disabled {
+    opacity: 0.35;
+}
+
+/* ============================
+   Segmented buttons (shared)
+   ============================ */
+
+.segmented {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.seg-btn {
+    flex: 1;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.03);
+    border: none;
+    border-right: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+    touch-action: manipulation;
+}
+
+.seg-btn:last-child {
+    border-right: none;
+}
+
+.seg-btn:hover {
+    color: var(--text-primary);
+}
+
+.seg-btn.active {
+    background: rgba(123, 47, 247, 0.2);
+    color: var(--accent-glow);
+    box-shadow: inset 0 0 10px rgba(123, 47, 247, 0.25);
+}
+
+body.light-mode .seg-btn {
+    background: rgba(0,0,0,0.03);
+}
+
+/* ============================
+   Backing (drone / pad)
+   ============================ */
+
+.backing-group {
+    min-width: 190px;
+}
+
+.drone-chord-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+.drone-chord-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+#drone-chord {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent2);
+    font-family: 'Courier New', monospace;
+    min-width: 3ch;
+    text-align: right;
+}
+
+/* ============================
+   Play Along
+   ============================ */
+
+#songs-btn.active {
+    background: rgba(255, 190, 30, 0.15);
+    border-color: #ffbe1e;
+    color: #ffbe1e;
+}
+
+body.game-active #freq-guides,
+body.kids-mode #songs-btn {
+    display: none;
+}
+
+#game-hud {
+    display: none;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 8px 10px 16px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+body.game-active #game-hud {
+    display: flex;
+}
+
+body.light-mode #game-hud {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+#game-score {
+    font-weight: 700;
+    color: var(--accent2);
+    font-family: 'Courier New', monospace;
+    min-width: 4ch;
+}
+
+#game-combo {
+    color: #ffd84a;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+#game-quit {
+    pointer-events: auto;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.06);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+#game-quit:hover {
+    border-color: var(--accent3);
+    color: var(--accent3);
+}
+
+#game-progress {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 4px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.12);
+    overflow: hidden;
+}
+
+#game-progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--theme-primary), var(--theme-secondary));
+}
+
+.game-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 5, 15, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 16px;
+}
+
+.game-overlay.open {
+    display: flex;
+}
+
+.game-card {
+    width: min(460px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 50px var(--theme-glow);
+    text-align: center;
+}
+
+.game-heading {
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.game-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    line-height: 1.4;
+}
+
+#game-song-list {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.game-song-btn {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    touch-action: manipulation;
+}
+
+.game-song-btn:hover {
+    border-color: var(--theme-primary);
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-1px);
+}
+
+body.light-mode .game-song-btn {
+    background: rgba(0,0,0,0.03);
+}
+
+.game-song-icon {
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.game-song-name {
+    font-size: 0.95rem;
+}
+
+.game-song-best {
+    font-size: 0.75rem;
+    color: #ffbe1e;
+    font-family: 'Courier New', monospace;
+}
+
+.game-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.game-opt-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.game-opt-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+#game-stars {
+    font-size: 3rem;
+    color: #ffd84a;
+    text-shadow: 0 0 20px rgba(255, 216, 74, 0.6);
+    letter-spacing: 0.1em;
+}
+
+#game-final {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--accent2);
+    font-family: 'Courier New', monospace;
+}
+
+#game-message {
+    font-size: 1.1rem;
+    margin: 4px 0 6px;
+}
+
+#game-newbest {
+    display: none;
+    color: #ffbe1e;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+}
+
+#game-newbest.show {
+    display: block;
+}
+
+#game-breakdown {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.game-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.game-actions .rec-btn, #game-picker-close {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+/* Kids Mode: big, simple picker */
+body.kids-mode .game-options {
+    display: none;
+}
+
+body.kids-mode .game-song-btn {
+    grid-template-columns: 56px 1fr auto;
+    padding: 14px 18px;
+    border-radius: 16px;
+    border-width: 2px;
+}
+
+body.kids-mode .game-song-icon {
+    font-size: 2.2rem;
+}
+
+body.kids-mode .game-song-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+body.kids-mode #game-hud {
+    font-size: 1.1rem;
+}
+
+body.kids-mode #game-quit {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+}
+
+body.kids-mode .game-actions .rec-btn {
+    padding: 14px 22px;
+    font-size: 1.1rem;
+    border-radius: 14px;
+    color: var(--text-primary);
+}
+
+@media (max-width: 600px) {
+    .header-controls {
+        gap: 0.5rem;
+    }
+
+    .freq-display {
+        display: none;
+    }
+
+    .btn-label {
+        display: none;
+    }
+
+    #game-hud {
+        gap: 8px;
+        font-size: 0.8rem;
+    }
+
+    #game-title {
+        max-width: 38vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+@media (max-width: 400px) {
+    .logo-text {
+        display: none;
+    }
+}
