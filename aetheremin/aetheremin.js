@@ -81,10 +81,8 @@
     const ANIMAL_OSC_TYPES = { cat: 'triangle', dog: 'sawtooth', bird: 'sine', whale: null };
     // Approximate fundamental pitch of each real audio sample (Hz)
     const ANIMAL_SAMPLE_BASE_FREQS = { cat: 440, dog: 280, bird: 800, whale: 180 };
-    // Loop end for samples that should only loop a portion (whale is 30s)
-    const ANIMAL_SAMPLE_LOOP_END = { whale: 4.0 };
-    // Start offset (seconds) to skip leading silence in samples
-    const ANIMAL_SAMPLE_START_OFFSET = { bird: 3.5 };
+    // Samples in audio/ are pre-trimmed loops: sound starts within ~40 ms and
+    // there are no long silences, so they loop whole from the beginning.
 
     // ---- State ----
     let audioCtx = null;
@@ -328,7 +326,7 @@
     }
 
     async function loadAnimalSamples() {
-        const files = { cat: 'audio/cat.mp3', dog: 'audio/dog.mp3', bird: 'audio/bird.ogg', whale: 'audio/whale.ogg' };
+        const files = { cat: 'audio/cat.mp3', dog: 'audio/dog.wav', bird: 'audio/bird.wav', whale: 'audio/whale.wav' };
         await Promise.all(Object.entries(files).map(async ([name, path]) => {
             try {
                 const resp = await fetch(path);
@@ -646,18 +644,11 @@
             srcNode = audioCtx.createBufferSource();
             srcNode.buffer = sampleBuf;
             srcNode.loop = true;
-            if (animalBuf && ANIMAL_SAMPLE_START_OFFSET[currentWaveform]) {
-                srcNode.loopStart = ANIMAL_SAMPLE_START_OFFSET[currentWaveform];
-            }
-            if (animalBuf && ANIMAL_SAMPLE_LOOP_END[currentWaveform]) {
-                srcNode.loopEnd = Math.min(sampleBuf.duration, ANIMAL_SAMPLE_LOOP_END[currentWaveform]);
-            }
             srcNode.playbackRate.value = 1;
             vibOsc.connect(vibGain);
             vibGain.connect(srcNode.playbackRate);
             srcNode.connect(gain);
-            const startOffset = (animalBuf && ANIMAL_SAMPLE_START_OFFSET[currentWaveform]) || 0;
-            srcNode.start(0, startOffset);
+            srcNode.start();
         } else {
             // Oscillator-based voice
             osc = audioCtx.createOscillator();
