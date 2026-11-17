@@ -380,16 +380,34 @@
   function door(g, x, y, w, h) { const p = [[x - w / 2, y], [x - w / 2, y - h + w / 2], ...A.arcPts(x, y - h + w / 2, w / 2, w / 2, Math.PI, TAU, 5), [x + w / 2, y]]; g.wash(p, C.umber, { a: 0.6, step: 99, mottle: false }); g.line(p, { w: 1, step: 99 }); }
 
   // A horse (or a donkey) at the trot, facing right, feet at the origin.
+  // two-bone IK: the joint between bones a and b running from p to q; dir -1 bends it forward, +1 backward
+  const ik2 = (p, q, a, b, dir) => {
+    let dx = q[0] - p[0], dy = q[1] - p[1]; const d = Math.hypot(dx, dy) || 1e-3, dd = Math.min(d, a + b - 0.01), k = (a * a - b * b + dd * dd) / (2 * dd), h = Math.sqrt(Math.max(0, a * a - k * k));
+    dx /= d; dy /= d; return [p[0] + dx * k - dy * h * dir, p[1] + dy * k + dx * h * dir];
+  };
+  // A horse at the trot (or a donkey at the walk), facing right, feet at the origin.
+  // Each hoof follows a real stride: planted and sliding back under the body, then lifted and swung forward.
+  // The joints are solved from the hoof up, and they bend the way a horse's do — the knee of a foreleg
+  // folds forward, the hock of a hind leg points back — which is what makes it read as a horse.
   function horse(g, x, y, t, col, donkey) {
-    const c = g.c, sc = donkey ? 1.05 : 1.35, ph = t * 8.5, bob = Math.sin(ph * 2) * 1.1, dark = A.mix(col, C.ink, 0.3);
+    const c = g.c, sc = donkey ? 1.05 : 1.35, cyc = t * 1.35, ph = cyc * TAU, trot = !donkey, dark = A.mix(col, C.ink, 0.3);
+    const duty = trot ? 0.46 : 0.63, S = trot ? 23 : 17, bob = Math.sin(ph * 2) * (trot ? 1.3 : 0.5);
+    // trot: diagonal pairs strike together. walk: four beats — near hind, near fore, far hind, far fore.
+    const OFF = trot ? { nh: 0, ff: 0, fh: 0.5, nf: 0.5 } : { nh: 0, nf: 0.25, fh: 0.5, ff: 0.75 };
     c.save(); c.translate(x, y); c.scale(sc, sc);
-    const leg = (hx, off, far) => {
-      const sw = Math.sin(ph + off), up = Math.max(0, Math.cos(ph + off)), a = sw * 0.5, kn = [hx + Math.sin(a) * 14, -27 + bob + Math.cos(a) * 13], a2 = a - up * 0.9 - 0.08;
-      const ft = [kn[0] + Math.sin(a2) * 14, Math.min(-1.5, kn[1] + Math.cos(a2) * 13.5)];
-      g.limb([[hx, -29 + bob], kn, ft], [4.4, 2.7, 2.1], far ? dark : col, { a: 0.8 });
-      const hf = [[ft[0] - 2.6, ft[1] - 1.5], [ft[0] + 3, ft[1] - 1.5], [ft[0] + 3.4, ft[1] + 1.8], [ft[0] - 2.8, ft[1] + 1.8]]; g.wash(hf, C.ink, { a: 0.85, spread: 0.3, mottle: false }); g.line(hf, { closed: true, w: 0.8, step: 99, dbl: false });
+    const leg = (hx, key, far, hind) => {
+      const f = (((cyc + OFF[key]) % 1) + 1) % 1; let fx, lift = 0, u = 0;
+      if (f < duty) fx = S / 2 - S * (f / duty);
+      else { u = (f - duty) / (1 - duty); fx = -S / 2 + S * A.smooth(u); lift = Math.sin(Math.PI * u) * (hind ? (trot ? 7 : 4.5) : (trot ? 10 : 6)); }
+      const top = [hx, -30 + bob], hoof = [hx + fx + (hind ? -2 : 2), -2.2 - lift];
+      const j = ik2(top, hoof, hind ? 18 : 16, hind ? 17 : 15, hind ? 1 : -1);
+      g.limb([top, [(top[0] + j[0]) / 2 + (hind ? 1.5 : 0), (top[1] + j[1]) / 2], j, hoof], hind ? [6.4, 4.6, 2.9, 2] : [4.6, 3.6, 2.8, 2], far ? dark : col, { a: 0.8 });
+      // the hoof hangs toe-down while the leg is in the air
+      const a = Math.atan2(hoof[1] - j[1], hoof[0] - j[0]) - Math.PI / 2 + (lift > 0.4 ? 0.5 * Math.sin(Math.PI * u) : 0), ca = Math.cos(a), sa = Math.sin(a);
+      const hf = [[-2.6, -1.4], [2.6, -1.4], [3.6, 2], [-2.8, 2]].map(([px, py]) => [hoof[0] + px * ca - py * sa, hoof[1] + px * sa + py * ca]);
+      g.wash(hf, C.ink, { a: 0.85, spread: 0.3, mottle: false }); g.line(hf, { closed: true, w: 0.8, step: 99, dbl: false });
     };
-    leg(-18, 0.4 + Math.PI, true); leg(18, 0.4, true);
+    leg(-18, 'fh', true, true); leg(18, 'ff', true, false);
     // tail
     const tl = A.quadPts([-27, -42 + bob], [-42, -36 + Math.sin(ph) * 3], [-38 + Math.sin(ph) * 3, -14], 7);
     g.wash([...tl, ...tl.slice().reverse().map(p => [p[0] + 5, p[1] - 1])], donkey ? dark : C.ink, { a: 0.75, step: 99, mottle: false, spread: 0.6 }); g.line(tl, { w: 1.1, step: 99 });
@@ -397,14 +415,14 @@
     g.paint(body, col, { a: 0.78, step: 99 }); g.line(body, { closed: true, w: 1.5, step: 99 });
     g.wash(A.arcPts(0, -27 + bob, 20, 5, 0, TAU, 8), dark, { a: 0.3, step: 99, edge: false, mottle: false });
     // neck and head, nodding
-    const nod = Math.sin(ph * 2 + 1) * 1.5, hy = bob + nod;
+    const nod = Math.sin(ph * 2 + 1) * (trot ? 1.2 : 2.6), hy = bob + nod;      // a walking animal nods with every foreleg
     const neck = [[14, -47 + bob], [30, -38 + bob], [43, -60 + hy], [33, -70 + hy]]; g.paint(neck, col, { a: 0.78, step: 99 }); g.line([neck[1], neck[2]], { w: 1.4 }); g.line([neck[0], neck[3]], { w: 1.4 });
     const head = [[31, -72 + hy], [41, -77 + hy], [56, -62 + hy], [55, -55 + hy], [47, -55 + hy], [37, -61 + hy]]; g.paint(head, col, { a: 0.78, step: 99 }); g.line(head, { closed: true, w: 1.4, step: 99 });
     const el = donkey ? 15 : 8; for (const q of [0, 3.5]) { const ear = [[33 + q, -74 + hy], [32 + q - (donkey ? 3 : 0), -74 - el + hy], [37 + q, -76 + hy]]; g.paint(ear, col, { a: 0.8, mottle: false }); g.line(ear, { w: 1.1, step: 99 }); }
     g.dot(42, -69 + hy, 1.4); g.dot(53.6, -59 + hy, 1); g.washEll(51, -58 + hy, 5, 4, donkey ? '#ffffff' : dark, { a: 0.5, edge: false, mottle: false });
     // mane
     for (let i = 0; i < 6; i++) { const u = i / 5, mx = A.lerp(31, 15, u), my = A.lerp(-71 + hy, -48 + bob, u); g.line([[mx, my], [mx - 6 - Math.sin(ph + i) * 1.5, my + 5]], { w: 2, c: donkey ? dark : C.ink, dbl: false, wob: 0.4 }); }
-    leg(-20, 0.4, false); leg(16, 0.4 + Math.PI, false);
+    leg(-20, 'nh', false, true); leg(16, 'nf', false, false);
     // harness: collar, girth, bridle
     g.line([[20, -47 + bob], [28, -36 + bob], [24, -30 + bob]], { w: 2.4, c: C.ochre, dbl: false }); g.line([[2, -47 + bob], [3, -23 + bob]], { w: 1.4, c: C.umber, dbl: false });
     g.line([[40, -75 + hy], [48, -57 + hy]], { w: 1, c: C.umber, dbl: false }); g.line([[36, -66 + hy], [52, -62 + hy]], { w: 1, c: C.umber, dbl: false });
